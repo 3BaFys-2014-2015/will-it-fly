@@ -83,6 +83,21 @@ void write_to_file(vtkSmartPointer<vtkStructuredGrid> grid, const std::string & 
 	writer->Write();
 }
 
+float red(uint32_t col)
+{
+	return ((double)((col & 0xff0000) >> 16)) / 255.0;
+}
+
+float green(uint32_t col)
+{
+	return ((double)((col & 0xff00) >> 8)) / 255.0;
+}
+
+float blue(uint32_t col)
+{
+	return ((double)(col & 0xff)) / 255.0;
+}
+
 void visualization_vtk_c::draw(const std::string & filename)
 {
 	//
@@ -107,15 +122,15 @@ void visualization_vtk_c::draw(const std::string & filename)
 	}
 	else
 	{
-		vtkSmartPointer<vtkRenderer> renderer = vtkRenderer::New();
+		vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
 
-		vtkSmartPointer<vtkRenderWindow> renWin = vtkRenderWindow::New();
+		vtkSmartPointer<vtkRenderWindow> renWin = vtkSmartPointer<vtkRenderWindow>::New();
 		renWin->AddRenderer(renderer);
 		renWin->SetSize(1000 , 1000);
 
-		vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = vtkInteractorStyleTrackballCamera::New();
+		vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
 
-		vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkRenderWindowInteractor::New();
+		vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
 
 		iren->SetInteractorStyle(style);
 		iren->SetRenderWindow(renWin);
@@ -133,8 +148,9 @@ void visualization_vtk_c::draw(const std::string & filename)
 			vtkSmartPointer<vtkDataSetMapper> mapperveld = vtkDataSetMapper::New();
 			mapperveld->SetInput(psi_grid);
 
-			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
+			//vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
 
+			/*
 			double values[2];
 
 			psi_grid->GetPointData()->GetScalars()->GetRange(values);
@@ -143,6 +159,35 @@ void visualization_vtk_c::draw(const std::string & filename)
 
 			lut->AddRGBPoint(values[0], 0, 0, 1);
 			lut->AddRGBPoint(values[1], 1, 0, 0);
+			*/
+
+			double delta = this->clip_max - this->clip_min;
+
+			double r1 = red(0x00134e5e);
+			double g1 = green(0x00134e5e);
+			double b1 = blue(0x00134e5e);
+
+
+			double r2 = red(0x0071b280);
+			double g2 = green(0x0071b280);
+			double b2 = blue(0x0071b280);
+
+			//
+
+			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
+
+
+			lut->SetNanColor(0, 0, 1);
+
+			lut->AddRGBPoint(this->clip_min, r1, g1, b1);
+
+			lut->AddRGBPoint(std::nextafter(this->clip_min, -std::numeric_limits<double>::infinity()), 1, 0, 0);
+
+			lut->AddRGBPoint(this->clip_max, r2, g2, b2);
+
+			lut->AddRGBPoint(std::nextafter(this->clip_max, std::numeric_limits<double>::infinity()), 0, 0, 1);
+
+			//
 
 			mapperveld->SetLookupTable(lut);
 
@@ -160,8 +205,8 @@ void visualization_vtk_c::draw(const std::string & filename)
 			mapperveld->SetInput(phi_grid);
 
 			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
-			double minvalue = -1;
-			double maxvalue = 1;
+			double minvalue = this->clip_min;
+			double maxvalue = this->clip_max;
 			lut->AddRGBPoint(minvalue, 0, 0, 1);
 			lut->AddRGBPoint(maxvalue, 1, 0, 0);
 
@@ -189,9 +234,9 @@ void visualization_vtk_c::draw(const std::string & filename)
 #endif
 
 			glyph3D->SetColorMode(2);
-			glyph3D->SetScaleModeToScaleByVector();
+			//glyph3D->SetScaleModeToScaleByVector();
 			//glyph3D->OrientOff();
-			glyph3D->SetScaleFactor(.1);
+			glyph3D->SetScaleFactor(.05);
 			glyph3D->Update();
 
 
@@ -206,15 +251,14 @@ void visualization_vtk_c::draw(const std::string & filename)
 			renderer->AddActor(actor);
 		}
 
-		renWin->Render();
 		iren->Initialize();
+		renWin->Render();
 		iren->Start();
 
-		iren->GetRenderWindow()->Finalize();
-
-		// Stop the interactor
 		iren->TerminateApp();
 	}
+
+	return;
 
 	std::cout << "hier" << std::endl;
 
@@ -263,9 +307,9 @@ vtkSmartPointer<vtkPoints> visualization_vtk_c::construct_points(const vector_2d
 	const vector_2d_c delta = max_range - min_range;
 	const vector_2d_c delta_it(delta.x / bin_x, delta.y / bin_y);
 
-	for(int i = 0; i <= bin_x; i++)
+	for(uint32_t i = 0; i <= bin_x; i++)
 	{
-		for(int j = 0; j <= bin_y; j++)
+		for(uint32_t j = 0; j <= bin_y; j++)
 		{
 			vector_2d_c pos(i * delta_it.x, j * delta_it.y);
 
@@ -280,8 +324,8 @@ vtkSmartPointer<vtkPoints> visualization_vtk_c::construct_points(const vector_2d
 
 vtkSmartPointer<vtkDoubleArray> visualization_vtk_c::construct_field(const vector_2d_c & binning, bool scalar) const
 {
-	uint32_t bin_x = round_abs(binning.x);
-	uint32_t bin_y = round_abs(binning.y);
+	//uint32_t bin_x = round_abs(binning.x);
+	//uint32_t bin_y = round_abs(binning.y);
 
 	vtkSmartPointer<vtkDoubleArray> vectors = vtkSmartPointer<vtkDoubleArray>::New();
 	//vectors->Allocate((bin_x + 1) * (bin_y + 1));
@@ -409,16 +453,6 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_phi_plane() const
 		const vector_2d_c pos(x[0], x[1]);
 
 		double t = clip_value(flow->get_phi(pos));
-
-		if(t > vtkMax)
-		{
-			t = vtkMax;
-		}
-
-		if(t < -vtkMax)
-		{
-			t = -vtkMax;
-		}
 
 		//field->InsertNextTuple1(t);
 		field->InsertNextValue(t);

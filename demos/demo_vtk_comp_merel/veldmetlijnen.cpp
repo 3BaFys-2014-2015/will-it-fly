@@ -64,8 +64,8 @@ vtkStructuredGrid * createGrid()
 				double x = ix - 5;
 				double y = iy - 5;
 				double f = x * x + y * y;
-				double vx = 2 * x ;
-				double vy = 2 * y ;
+				//double vx = 2 * x ;
+				//double vy = 2 * y ;
 
 				points->InsertNextPoint(x, y, iz);
 				data1->InsertNextValue(f);
@@ -103,8 +103,8 @@ int main()
 	pts->InsertNextPoint(Q2);
 
 // kleuren aanmaken
-	unsigned char red[3] = {255, 0, 0};
-	unsigned char green[3] = {0, 255, 0};
+	//unsigned char red[3] = {255, 0, 0};
+	//unsigned char green[3] = {0, 255, 0};
 	unsigned char zwart[3] = {0, 0, 0};
 
 // Setup the colors array

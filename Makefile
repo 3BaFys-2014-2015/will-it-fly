@@ -1,8 +1,6 @@
 # Makefile
 # Compilatie objecten (*.o) gaan naar ./obj/, binaries gaan naar ./bin/, library headers (*.hpp) gaan naar ./include/ en libraries (*.so) gaan naar ./lib/
 
-
-
 SRC_PATH=$(wildcard ./will_it_fly/*.cpp)
 SRC_WIF=$(notdir $(SRC_PATH))
 OBJ_WIF=$(SRC_WIF:.cpp=.o)
@@ -11,8 +9,9 @@ OBJ_PATH=$(addprefix ./build/obj/wif/, $(OBJ_WIF))
 PATH:=/home/uauser/Software/root-v5.34.25/builddir/bin:$(PATH)
 LD_LIBRARY_PATH:=/home/uauser/Software/root-v5.34.25/builddir/lib:$(LD_LIBRARY_PATH)
 
-CC=g++ -std=c++11
-CC_FLAGS=-Wall
+export CXX=g++ -std=c++11
+export CXX_FLAGS=-Wall
+export BUILD_SUFFIX=
 
 INCLUDE=-I./build/include
 LIBDIR=-L./build/lib
@@ -23,6 +22,14 @@ INSTALL_PATH=/usr/
 
 all : demos wif
 	echo "Building all"
+
+debug : export CXX_FLAGS=-Wall -g
+debug : export BUILD_SUFFIX=_d
+debug : all
+
+optimized : export CXX_FLAGS=-Wall -O3
+optimized : export BUILD_SUFFIX=_o
+optimized : all
 
 doxygen : builddir
 	doxygen
@@ -70,7 +77,7 @@ team_core_demos :
 
 team_algo_demos : root_algo_demos gsl_demos demo_algo_diagonalizationspeed demo_algo_integrationspeed demo_wif_algo
 
-vtk_compilatie_demos : demo_vtk_comp_dolf demo_vtk_comp_kristof demo_vtk_comp_merel demo_vtk_comp_senne demo_vtk_merel
+vtk_compilatie_demos : demo_vtk_comp_dolf demo_vtk_comp_kristof demo_vtk_comp_merel demo_vtk_comp_senne demo_vtk_merel demo_vtk_wtf
 
 gsl_demos : demo_gsl_integral demo_gsl_diag demo_gsl_andy
 

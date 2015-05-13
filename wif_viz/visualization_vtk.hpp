@@ -92,12 +92,15 @@ private:
 
 	void contour_plot(vtkSmartPointer<vtkPlaneSource> plane, std::vector<double> contlvls) const; //int ncont
 
+<<<<<<< HEAD
 	vtkSmartPointer<vtkActor> geef_actor_lijnen(std::vector<wif_core::line_2d_c>);
 
 	vtkSmartPointer<vtkActor> geef_actor_punten(std::vector<wif_core::vector_2d_c>);
 
 
 
+=======
+>>>>>>> fda40db881e78b71ccbac99bdfe28bb1fb991916
 	/*private:
 		std::vector<vtkSmartPointer<vtkActor>> actors;*/
 };

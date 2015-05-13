@@ -84,7 +84,7 @@ int main()
 
 	printf("result          = % .18f\n", result);
 	printf("estimated error = % .18f\n", error);
-	printf("intervals =  %d\n", w->size);
+	printf("intervals =  %zd\n", w->size);
 	printf("duration = %.18f\n", duration);
 
 	gsl_integration_workspace_free(w);
@@ -107,7 +107,7 @@ int main()
 
 	printf("result          = % .18f\n", result);
 	printf("estimated error = % .18f\n", error);
-	printf("intervals =  %d\n", ww->size);
+	printf("intervals =  %zd\n", ww->size);
 	printf("duration = %.18f\n", duration);
 
 	gsl_integration_workspace_free(ww);
@@ -136,7 +136,7 @@ int main()
 	printf("result velocity x = % .18f\n", result);
 	printf("estimated error = % .18f\n", error);
 	printf("actual error =%.18f\n", result - Act_X);
-	printf("intervals =  %d\n", w3->size);
+	printf("intervals =  %zd\n", w3->size);
 	printf("duration = %.18f\n", duration);
 
 
@@ -158,7 +158,7 @@ int main()
 	printf("result velocity y = % .18f\n", result);
 	printf("estimated error = % .18f\n", error);
 	printf("actual error =%.18f\n", result - Act_Y);
-	printf("intervals =  %d\n", w3->size);
+	printf("intervals =  %zd\n", w3->size);
 	printf("duration = %.18f\n", duration);
 
 	gsl_integration_workspace_free(w3);
