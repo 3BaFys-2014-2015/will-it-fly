@@ -35,6 +35,24 @@
 #include "vtkWindowToImageFilter.h"
 #include "vtkPNGWriter.h"
 
+#include <vtkVersion.h>
+#include <vtkSmartPointer.h>
+#include <vtkPoints.h>
+#include <vtkPolyData.h>
+#include <vtkPointData.h>
+#include <vtkCellArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkVertexGlyphFilter.h>
+#include <vtkProperty.h>
+
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkLine.h>
+#include <vtkPolyData.h>
+
+
 #include "vtkPlaneSource.h"
 
 namespace wif_viz
@@ -74,8 +92,14 @@ private:
 
 	void contour_plot(vtkSmartPointer<vtkPlaneSource> plane, std::vector<double> contlvls) const; //int ncont
 
-/*private:
-	std::vector<vtkSmartPointer<vtkActor>> actors;*/
+	vtkSmartPointer<vtkActor> geef_actor_lijnen(std::vector<wif_core::line_2d_c>);
+
+	vtkSmartPointer<vtkActor> geef_actor_punten(std::vector<wif_core::vector_2d_c>);
+
+
+
+	/*private:
+		std::vector<vtkSmartPointer<vtkActor>> actors;*/
 };
 
 
