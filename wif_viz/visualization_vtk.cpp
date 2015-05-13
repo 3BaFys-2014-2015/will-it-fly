@@ -26,6 +26,25 @@
 #include <vtkPlaneSource.h>
 #include <vtkDoubleArray.h>
 
+#include <vtkVersion.h>
+#include <vtkSmartPointer.h>
+#include <vtkPoints.h>
+#include <vtkPolyData.h>
+#include <vtkPointData.h>
+#include <vtkCellArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkVertexGlyphFilter.h>
+#include <vtkProperty.h>
+
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkLine.h>
+#include <vtkPolyData.h>
+
+
+
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -210,10 +229,10 @@ void visualization_vtk_c::draw(const std::string & filename)
 
 	std::vector<double> contvec_phi, contvec_psi;
 
-	double delta_phi = std::abs((phiRange[1] - phiRange[0])/(20));
-	double delta_psi = std::abs((psiRange[1] - psiRange[0])/(20));
+	double delta_phi = std::abs((phiRange[1] - phiRange[0]) / (20));
+	double delta_psi = std::abs((psiRange[1] - psiRange[0]) / (20));
 
-	for (int i = 0; i < 20; ++i)
+	for(int i = 0; i < 20; ++i)
 	{
 		contvec_phi.push_back(phiRange[0] + delta_phi * i);
 		std::cout << contvec_phi[i] << std::endl;
@@ -222,9 +241,9 @@ void visualization_vtk_c::draw(const std::string & filename)
 	}
 
 	std::cout << "hier" << std::endl;
-	contour_plot(phi_plane,contvec_phi);
+	contour_plot(phi_plane, contvec_phi);
 	std::cout << "hier" << std::endl;
-	contour_plot(psi_plane,contvec_psi);
+	contour_plot(psi_plane, contvec_psi);
 	std::cout << "hier" << std::endl;
 
 	return;
@@ -576,6 +595,125 @@ void visualization_vtk_c::contour_plot(vtkSmartPointer<vtkPlaneSource> plane, st
 	// Begin interaction
 	renWin->Render();
 	iren->Start();
+}
+
+
+vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_lijnen(std::vector<wif_core::line_2d_c> mylines)
+{
+	unsigned char black[3] = {0, 0, 0};
+	vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+	colors->SetNumberOfComponents(3);
+	colors->SetName("Colors");
+
+	vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+
+	int N = mylines.size() ;                                                 // aantal lijnen dat getekend moet worden.
+
+	for(int j = 0; j < N; j = j + 1)
+	{
+		pts->InsertNextPoint(mylines[j].begin.x, mylines[j].begin.y, 0);    // beginpunt lijn
+		pts->InsertNextPoint(mylines[j].end.x, mylines[j].end.y, 0);			// eindpunt lijn     opslagen in vtk object
+		colors->InsertNextTupleValue(black);
+	}
+
+
+
+	std::vector<vtkSmartPointer<vtkLine> > line;
+
+// Create a cell array to store the lines in and add the lines to it
+	vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+	for(int j = 0; j < N; j = j + 1)
+	{
+		line.push_back(vtkSmartPointer<vtkLine>::New());
+
+		line[j]->GetPointIds()->SetId(0, 2 * j); //het tweede getal is de index van O1 in de vtkPoints
+		line[j]->GetPointIds()->SetId(1, (2 * j) + 1); //het tweede getal is de index van P1 in de vtkPoints
+
+		lines->InsertNextCell(line[j]);
+	}
+
+
+// Create a polydata to store everything in
+	vtkSmartPointer<vtkPolyData> linesPolyData = vtkSmartPointer<vtkPolyData>::New();
+
+// Add the points to the dataset
+	linesPolyData->SetPoints(pts);
+
+// Add the lines to the dataset
+	linesPolyData->SetLines(lines);
+
+// Color the lines - associate every component of the
+// colors array with the component of the cell array
+	linesPolyData->GetCellData()->SetScalars(colors);
+
+
+
+	vtkSmartPointer<vtkPolyDataMapper> mapperlijn = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION <= 5
+	mapperlijn->SetInput(linesPolyData);
+#else
+	mapperlijn->SetInputData(linesPolyData);
+#endif
+
+	vtkSmartPointer<vtkActor> actorlijn = vtkSmartPointer<vtkActor>::New();
+	actorlijn->SetMapper(mapperlijn);
+	actorlijn->GetProperty()->SetLineWidth(5);    // de dikte van de lijn aanpassen
+	return actorlijn ;
+
+
+}
+
+vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_punten(std::vector<wif_core::vector_2d_c> mypoints)
+{
+
+
+	vtkSmartPointer<vtkPoints> points =  vtkSmartPointer<vtkPoints>::New();
+
+	unsigned char red[3] = {255, 0, 0};
+	vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+	colors->SetNumberOfComponents(3);
+	colors->SetName("Colors");
+
+
+	int n = mypoints.size() ;
+
+	for(int j = 0; j < n; j = j + 1)
+	{
+		points->InsertNextPoint(mypoints[j].x, mypoints[j].y, 0);    // beginpunt lijn
+		colors->InsertNextTupleValue(red);
+	}
+
+	vtkSmartPointer<vtkPolyData> pointsPolydata = vtkSmartPointer<vtkPolyData>::New();
+	pointsPolydata->SetPoints(points);
+
+
+	vtkSmartPointer<vtkVertexGlyphFilter> vertexFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#if VTK_MAJOR_VERSION <= 5
+	vertexFilter->SetInputConnection(pointsPolydata->GetProducerPort());
+#else
+	vertexFilter->SetInputData(pointsPolydata);
+#endif
+	vertexFilter->Update();
+
+	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+	polydata->ShallowCopy(vertexFilter->GetOutput());
+	polydata->GetPointData()->SetScalars(colors);
+
+
+// VISUALISATIE
+	vtkSmartPointer<vtkPolyDataMapper> mapperpunt = vtkSmartPointer<vtkPolyDataMapper>::New();
+#if VTK_MAJOR_VERSION <= 5
+	mapperpunt->SetInputConnection(polydata->GetProducerPort());
+#else
+	mapperpunt->SetInputData(polydata);
+#endif
+
+	vtkSmartPointer<vtkActor> actorpunt = vtkSmartPointer<vtkActor>::New();
+	actorpunt->SetMapper(mapperpunt);
+	actorpunt->GetProperty()->SetPointSize(5);
+
+	return actorpunt;
 }
 
 
