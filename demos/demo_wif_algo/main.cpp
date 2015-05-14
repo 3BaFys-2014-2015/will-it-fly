@@ -14,10 +14,10 @@ int main()
 	wif_core::vector_2d_c midpoint(0, 0);
 	wif_core::airfoil_c myAirfoil(midpoint, radius, num_lines);
 	std::shared_ptr<wif_core::uniform_flow_c> myFlow = std::make_shared<wif_core::uniform_flow_c>(0, 1);
-	bool Kutta = 0;
+	bool Kutta = 1;
 
 	wif_algo::calculation_results_c calculate_flow2 = wif_algo::calculate_flow(myAirfoil, myFlow, Kutta);
-	double gamma = 0;
+	//double gamma = 0;
 
 	std::vector<wif_core::line_2d_c> mylines = myAirfoil.get_lines();
 	std::vector<wif_core::vector_2d_c> centers(num_lines);

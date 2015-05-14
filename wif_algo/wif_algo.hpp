@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <memory>
 #include <cmath>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_integration.h>
+
+
 #include <wif_core/wif_core.hpp>
 
 namespace wif_algo

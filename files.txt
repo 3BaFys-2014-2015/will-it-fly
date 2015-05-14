@@ -1,5 +1,8 @@
 build
+<<<<<<< HEAD
+=======
 demo.png
+>>>>>>> 07dab0a3fa105f63d184bd92ced3fe7b678453c3
 demos
 Doxyfile
 examen2015.pdf
@@ -8,6 +11,10 @@ fix_style.sh
 git_hulp
 Makefile
 README.md
+<<<<<<< HEAD
+#set_env.sh#
+=======
+>>>>>>> 07dab0a3fa105f63d184bd92ced3fe7b678453c3
 set_env.sh
 style
 teams

@@ -212,8 +212,9 @@ airfoil_c airfoil_c::get_circle_projection(uint32_t n, const vector_2d_c & proje
 
 bool airfoil_c::is_closed(double epsilon) const
 {
+	double lsq = (this->points.front() - this->points.back()).get_length_sq();
 
-	return !is_valid() or ((this->points.front() - this->points.back()).get_length_sq() < (epsilon * epsilon));
+	return !is_valid() or (lsq < (epsilon * epsilon));
 }
 
 

@@ -109,9 +109,8 @@ float blue(uint32_t col)
 	return ((double)(col & 0xff)) / 255.0;
 }
 
-void visualization_vtk_c::draw(const std::string & filename)
+void visualization_vtk_c::draw_ivo(const std::string & filename)
 {
-	//
 	if((filename.size() > 1) && (filename.find('.') == std::string::npos))
 	{
 		/// Enkel uitvoeren als de filename geen extensie heeft.
@@ -172,7 +171,25 @@ void visualization_vtk_c::draw(const std::string & filename)
 			lut->AddRGBPoint(values[1], 1, 0, 0);
 			*/
 
-			double delta = this->clip_max - this->clip_min;
+			double min_v = this->clip_min;
+			double max_v = this->clip_max;
+
+			if(clip_min == clip_max)
+			{
+				double values[2];
+
+				psi_grid->GetPointData()->GetScalars()->GetRange(values);
+
+				min_v = values[0];
+				max_v = values[1];
+			}
+			else
+			{
+				min_v = this->clip_min;
+				max_v = this->clip_max;
+			}
+
+			double delta = max_v - min_v;
 
 			double r1 = red(0x00134e5e);
 			double g1 = green(0x00134e5e);
@@ -190,13 +207,13 @@ void visualization_vtk_c::draw(const std::string & filename)
 
 			lut->SetNanColor(0, 0, 1);
 
-			lut->AddRGBPoint(this->clip_min, r1, g1, b1);
+			lut->AddRGBPoint(min_v, r1, g1, b1);
 
-			lut->AddRGBPoint(std::nextafter(this->clip_min, -std::numeric_limits<double>::infinity()), 1, 0, 0);
+			lut->AddRGBPoint(std::nextafter(min_v, -std::numeric_limits<double>::infinity()), 1, 0, 0);
 
-			lut->AddRGBPoint(this->clip_max, r2, g2, b2);
+			lut->AddRGBPoint(max_v, r2, g2, b2);
 
-			lut->AddRGBPoint(std::nextafter(this->clip_max, std::numeric_limits<double>::infinity()), 0, 0, 1);
+			lut->AddRGBPoint(std::nextafter(max_v, std::numeric_limits<double>::infinity()), 0, 0, 1);
 
 			//
 
@@ -215,11 +232,50 @@ void visualization_vtk_c::draw(const std::string & filename)
 			vtkSmartPointer<vtkDataSetMapper> mapperveld = vtkDataSetMapper::New();
 			mapperveld->SetInput(phi_grid);
 
+			double min_v = this->clip_min;
+			double max_v = this->clip_max;
+
+			if(clip_min == clip_max)
+			{
+				double values[2];
+
+				phi_grid->GetPointData()->GetScalars()->GetRange(values);
+
+				min_v = values[0];
+				max_v = values[1];
+			}
+			else
+			{
+				min_v = this->clip_min;
+				max_v = this->clip_max;
+			}
+
+			double delta = max_v - min_v;
+
+			double r1 = red(0x00134e5e);
+			double g1 = green(0x00134e5e);
+			double b1 = blue(0x00134e5e);
+
+
+			double r2 = red(0x0071b280);
+			double g2 = green(0x0071b280);
+			double b2 = blue(0x0071b280);
+
+			//
+
 			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
-			double minvalue = this->clip_min;
-			double maxvalue = this->clip_max;
-			lut->AddRGBPoint(minvalue, 0, 0, 1);
-			lut->AddRGBPoint(maxvalue, 1, 0, 0);
+
+
+			lut->SetNanColor(0, 0, 1);
+
+			lut->AddRGBPoint(min_v, r1, g1, b1);
+
+			lut->AddRGBPoint(std::nextafter(min_v, -std::numeric_limits<double>::infinity()), 1, 0, 0);
+
+			lut->AddRGBPoint(max_v, r2, g2, b2);
+
+			lut->AddRGBPoint(std::nextafter(max_v, std::numeric_limits<double>::infinity()), 0, 0, 1);
+
 
 			mapperveld->SetLookupTable(lut);
 
@@ -262,12 +318,23 @@ void visualization_vtk_c::draw(const std::string & filename)
 			renderer->AddActor(actor);
 		}
 
+		if(this->airfoil)
+		{
+			renderer->AddActor(geef_actor_lijnen(this->airfoil->get_lines()));
+		}
+
 		iren->Initialize();
 		renWin->Render();
 		iren->Start();
 
 		iren->TerminateApp();
 	}
+}
+
+void visualization_vtk_c::draw(const std::string & filename)
+{
+	//
+
 
 	//return;
 
@@ -291,29 +358,14 @@ void visualization_vtk_c::draw(const std::string & filename)
 
 	//contour_plot(phi_plane, 20);//contvec_phi);
 	contour_plot(psi_plane, psi_pot_vec);//contvec_psi);
-	vtkSmartPointer<vtkActor> stroomlijnen = streamlines_plot(construct_velocity_grid(), 20);
 
-	vtkSmartPointer<vtkRenderer> renderer24 = vtkSmartPointer<vtkRenderer>::New();
-	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-	renderWindow->AddRenderer(renderer24);
 
-	vtkSmartPointer<vtkRenderWindowInteractor> interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	interactor->SetRenderWindow(renderWindow);
 
-	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style =
-	    vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
-	interactor->SetInteractorStyle(style);
+	streamlines_plot(construct_velocity_grid(), 20);
 
-	renderer24->AddActor(stroomlijnen);
+	arrow_plot();
 
-	// Add the actors to the renderer, set the background and size
-	renderer24->SetBackground(1, 1, 1);
-	renderWindow->SetSize(300, 300);
-	interactor->Initialize();
-	std::cout << "test3" << std::endl;
-	renderWindow->Render();
 
-	interactor->Start();
 
 
 	return;
@@ -451,6 +503,11 @@ vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_velocity_grid(
 		const vector_2d_c velo = flow->get_velocity(pos);
 		double v[3] = {velo.x, velo.y, 0.0};
 
+		if(velo.get_length_sq() < stagnation_tolerance)
+		{
+			this->stagnation_point.push_back(vector_2d_c(pos));
+		}
+
 		field->InsertNextTuple(v);
 	}
 
@@ -470,6 +527,9 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_phi_plane() const
 	vtkSmartPointer<vtkDoubleArray> field = vtkSmartPointer<vtkDoubleArray>::New();
 	vtkSmartPointer<vtkPoints> points = plane->GetOutput()->GetPoints();
 
+	double icout = points->GetNumberOfPoints() * 0.01;
+
+
 	for(int i = 0; i < points->GetNumberOfPoints(); i++)
 	{
 		double x[3];
@@ -477,9 +537,20 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_phi_plane() const
 		points->GetPoint(i, x);
 
 		const vector_2d_c pos(x[0], x[1]);
-		std::cout << x[0] << ", " << x[1] << std::endl;
+
 		double t = clip_value(flow->get_phi(pos));
 
+		if(i > icout)
+		{
+			std::cout << i << ": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
+			icout = icout + (points->GetNumberOfPoints() / 100);
+		}
+
+		/*if (i > icout)
+		{
+			std::cout << i <<": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
+			icout = icout + (points->GetNumberOfPoints()/100);
+		}*/
 		/*if(t > vtkMax)
 		{
 			t = vtkMax;
@@ -490,7 +561,7 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_phi_plane() const
 			t = -vtkMax;
 		}*/
 
-		std::cout << t << std::endl;
+		//std::cout << t << std::endl;
 		//field->InsertNextTuple1(t);
 		field->InsertNextValue(t);
 	}
@@ -512,6 +583,8 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_psi_plane() const
 	vtkSmartPointer<vtkDoubleArray> field = vtkSmartPointer<vtkDoubleArray>::New();
 	vtkSmartPointer<vtkPoints> points = plane->GetOutput()->GetPoints();
 
+	double icout = points->GetNumberOfPoints() * 0.01;
+
 	for(int i = 0; i < points->GetNumberOfPoints(); i++)
 	{
 		double x[3];
@@ -519,8 +592,17 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_psi_plane() const
 		points->GetPoint(i, x);
 
 		const vector_2d_c pos(x[0], x[1]);
-		std::cout << x[0] << ", " << x[1] << std::endl;
+
+
 		double t = clip_value(flow->get_psi(pos));
+		//std::cout <<  i <<": " << pos.x << ", " << pos.y << "// ->" << t << std::endl;
+
+
+		if(i > icout)
+		{
+			std::cout << i << ": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
+			icout = icout + (points->GetNumberOfPoints() * 0.01);
+		}
 
 		/*if(t > vtkMax)
 		{
@@ -532,7 +614,7 @@ vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_psi_plane() const
 			t = -vtkMax;
 		}*/
 
-		std::cout << t << std::endl;
+		//std::cout << t << std::endl;
 		//field->InsertNextTuple1(t);
 		field->InsertNextValue(t);
 	}
@@ -570,7 +652,7 @@ void visualization_vtk_c::contour_plot(vtkSmartPointer<vtkPlaneSource> plane, st
 	int numberOfContours = contlvls.size();
 	contlvls.push_back(planeRange[1] + 0.5);
 
-	double delta = (scalarRange[1] - scalarRange[0]) / static_cast<double>(numberOfContours - 1);
+	//double delta = (scalarRange[1] - scalarRange[0]) / static_cast<double>(numberOfContours - 1);
 
 	// Keep the clippers alive
 	std::vector<vtkSmartPointer<vtkClipPolyData> > clippersLo;
@@ -633,6 +715,7 @@ void visualization_vtk_c::contour_plot(vtkSmartPointer<vtkPlaneSource> plane, st
 	//schaal bar
 	vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
 	scalarBar->SetLookupTable(lut);
+	//scalarBar->GetLabelTextProperty()->SetColor(0,0,0); //werkt blijkbaar niet
 
 	vtkSmartPointer<vtkActor> contourActor = vtkSmartPointer<vtkActor>::New();
 	contourActor->SetMapper(contourMapper);
@@ -657,12 +740,15 @@ void visualization_vtk_c::contour_plot(vtkSmartPointer<vtkPlaneSource> plane, st
 	vtkSmartPointer<vtkRenderWindowInteractor>
 	iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
 
-	ren1->SetBackground(.1, .2, .3);
+	ren1->SetBackground(1, 1, 1);
 	renWin->AddRenderer(ren1);
 	iren->SetRenderWindow(renWin);
 
 	// assen
 	vtkSmartPointer<vtkCubeAxesActor> assen = axis(plane, ren1);
+	assen->GetProperty()->SetColor(0, 0, 0);
+	assen->SetXTitle("x");
+	assen->SetYTitle("y");
 
 	// Add the actors
 	ren1->AddActor2D(scalarBar);
@@ -793,9 +879,79 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_punten(std::vector<wif
 
 	return actorpunt;
 }
+void visualization_vtk_c::arrow_plot() const
+{
+	vtkSmartPointer<vtkStructuredGrid> velocity_grid = construct_velocity_grid();
 
-//
-vtkSmartPointer<vtkActor> visualization_vtk_c::streamlines_plot(vtkSmartPointer<vtkStructuredGrid> sgrid, uint32_t number_of_streamlines) const
+	vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
+
+	vtkSmartPointer<vtkGlyph3D> glyph3D = vtkSmartPointer<vtkGlyph3D>::New();
+	glyph3D->SetSourceConnection(arrowSource->GetOutputPort());
+	//glyph3D->SetVectorModeToUseVector();
+#if VTK_MAJOR_VERSION <= 5
+	glyph3D->SetInput(velocity_grid);
+#else
+	glyph3D->SetInputData(input);
+#endif
+
+	glyph3D->SetColorMode(2);
+	//glyph3D->SetScaleModeToScaleByVector();
+	//glyph3D->OrientOff();
+	glyph3D->SetScaleFactor(.05);
+	glyph3D->Update();
+
+	vtkSmartPointer<vtkRenderer> renderer =
+	    vtkSmartPointer<vtkRenderer>::New();
+	renderer->SetBackground(1, 1, 1);
+
+	vtkSmartPointer<vtkPolyDataMapper> mapper =
+	    vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper->SetInputConnection(glyph3D->GetOutputPort());
+
+	vtkSmartPointer<vtkActor> actor =
+	    vtkSmartPointer<vtkActor>::New();
+	actor->SetMapper(mapper);
+	actor->GetProperty()->SetRepresentationToSurface();
+
+	vtkSmartPointer<vtkActor> superquadricActor =
+	    vtkSmartPointer<vtkActor>::New();
+	superquadricActor->SetMapper(mapper);
+	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = axis(glyph3D, renderer);
+
+	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
+	cubeAxesActor->SetXTitle("x");
+	cubeAxesActor->SetYTitle("y");
+
+	/*renderer->AddActor(actor);
+	renderer->AddActor(cubeAxesActor );
+	renderer->ResetCamera();*/
+
+	renderer->AddActor(cubeAxesActor);
+	renderer->AddActor(superquadricActor);
+	renderer->ResetCamera();
+
+	//renderer->GetActiveCamera()->Azimuth(0);
+	//renderer->GetActiveCamera()->Elevation(0);
+
+	vtkSmartPointer<vtkRenderWindow> renderWindow =
+	    vtkSmartPointer<vtkRenderWindow>::New();
+	renderWindow->AddRenderer(renderer);
+
+	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor =
+	    vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	renderWindowInteractor->SetRenderWindow(renderWindow);
+
+	vtkSmartPointer<vtkInteractorStyleImage> imageStyle =
+	    vtkSmartPointer<vtkInteractorStyleImage>::New();
+	renderWindow->GetInteractor()->SetInteractorStyle(imageStyle);
+
+	renderWindow->Render();
+	//
+
+	renderWindowInteractor->Start();
+}
+
+void visualization_vtk_c::streamlines_plot(vtkSmartPointer<vtkStructuredGrid> sgrid, uint32_t number_of_streamlines) const
 {
 	// Source of the streamlines
 
@@ -830,7 +986,53 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::streamlines_plot(vtkSmartPointer<
 	streamLineActor->GetProperty()->SetLineWidth(3);
 	streamLineActor->VisibilityOn();
 
-	return streamLineActor;
+	//return streamLineActor;
+
+	vtkSmartPointer<vtkRenderer> renderer24 = vtkSmartPointer<vtkRenderer>::New();
+	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+	renderWindow->AddRenderer(renderer24);
+
+	vtkSmartPointer<vtkRenderWindowInteractor> interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+	interactor->SetRenderWindow(renderWindow);
+
+	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
+	interactor->SetInteractorStyle(style);
+
+
+
+	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
+	cubeAxesActor->SetBounds(min_range.x, max_range.x, min_range.y, max_range.y, 0, 0);
+	cubeAxesActor->SetCamera(renderer24->GetActiveCamera());
+
+	cubeAxesActor->DrawXGridlinesOff();
+	cubeAxesActor->DrawYGridlinesOff();
+	cubeAxesActor->DrawZGridlinesOff();
+	cubeAxesActor->ZAxisLabelVisibilityOff();
+#if VTK_MAJOR_VERSION > 5
+	cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
+#endif
+
+	cubeAxesActor->XAxisMinorTickVisibilityOff();
+	cubeAxesActor->YAxisMinorTickVisibilityOff();
+	cubeAxesActor->ZAxisMinorTickVisibilityOff();
+
+	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
+	cubeAxesActor->SetXTitle("x");
+	cubeAxesActor->SetYTitle("y");
+	cubeAxesActor->SetCamera(renderer24->GetActiveCamera());
+
+	renderer24->AddActor(streamLineActor);
+	renderer24->AddActor(cubeAxesActor);
+	renderer24->ResetCamera();
+
+	// Add the actors to the renderer, set the background and size
+	renderer24->SetBackground(1, 1, 1);
+	renderWindow->SetSize(300, 300);
+	interactor->Initialize();
+	std::cout << "test3" << std::endl;
+	renderWindow->Render();
+
+	interactor->Start();
 }
 
 vtkSmartPointer<vtkCubeAxesActor> visualization_vtk_c::axis(vtkSmartPointer<vtkPlaneSource> object, vtkSmartPointer<vtkRenderer> renderer) const
@@ -870,6 +1072,12 @@ vtkSmartPointer<vtkCubeAxesActor> visualization_vtk_c::axis(vtkSmartPointer<vtkG
 	cubeAxesActor->XAxisMinorTickVisibilityOff();
 	cubeAxesActor->YAxisMinorTickVisibilityOff();
 	cubeAxesActor->ZAxisMinorTickVisibilityOff();
+
+	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
+	cubeAxesActor->SetXTitle("x");
+	cubeAxesActor->SetYTitle("y");
+	cubeAxesActor->SetCamera(renderer->GetActiveCamera());
+
 	return cubeAxesActor;
 }
 

@@ -61,7 +61,7 @@ int main()
 
 	vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
 
-	double delta = clip_max - clip_min;
+	//double delta = clip_max - clip_min;
 
 	lut->AddRGBPoint(std::nextafter(clip_min, -std::numeric_limits<double>::infinity()), 0, 0, 1);
 	lut->SetNanColor(0, 0, 1);

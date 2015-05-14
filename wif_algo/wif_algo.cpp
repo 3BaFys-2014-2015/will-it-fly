@@ -1,6 +1,6 @@
 #include "wif_algo.hpp"
-
-#include <wif_core/wif_core.hpp>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_integration.h>
 
 namespace wif_algo
 {
@@ -46,38 +46,6 @@ double vortex_sheet_function_1(double s, void * parameters)
 	double ya = (params->ya);
 
 	double a = sin(beta) * (xc - (xa - s * sin(betaj))) - cos(beta) * (yc - (ya + s * cos(betaj)));
-	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
-
-	return a / b;
-}
-
-double vortex_sheet_function_2(double s, void * parameters)
-{
-	struct integration_function_parameters * params = (struct integration_function_parameters *)parameters;
-	double beta = (params->beta);
-	double betaj = (params->betaj);
-	double xc = (params->xc);
-	double yc = (params->yc);
-	double xa = (params->xa);
-	double ya = (params->ya);
-
-	double a = cos(beta) * (xc - (xa - s * sin(betaj))) - sin(beta) * (yc - (ya + s * cos(betaj)));
-	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
-
-	return a / b;
-}
-
-double vortex_sheet_function_3(double s, void * parameters)
-{
-	struct integration_function_parameters * params = (struct integration_function_parameters *)parameters;
-	double beta = (params->beta);
-	double betaj = (params->betaj);
-	double xc = (params->xc);
-	double yc = (params->yc);
-	double xa = (params->xa);
-	double ya = (params->ya);
-
-	double a = -cos(beta) * (xc - (xa - s * sin(betaj))) + sin(beta) * (yc + (ya + s * cos(betaj)));
 	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
 
 	return a / b;
@@ -139,8 +107,8 @@ double v_t_vortex_function(double s, void * parameters)
 	double yc = (params->yc);
 	double xa = (params->xa);
 	double ya = (params->ya);
-	double a = 0 ; // PAS AAN !!! NIEUWE UITDRUKKING NODIG !!
-	double b = 5; // PAS AAN !! NIEUWE UITDRUKKING NODIG !!
+	double a = ((xc - (xa - s * sin(betaj))) * cos(beta) + (yc - (ya + s * cos(betaj))) * sin(beta)) ;
+	double b = (pow((xc - (xa - s * sin(betaj))), 2.) + pow((yc - (ya + s * cos(betaj))), 2.));
 
 	return a / b;
 }
