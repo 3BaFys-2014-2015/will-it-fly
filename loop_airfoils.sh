@@ -6,6 +6,5 @@ source set_env.sh
 for file in $PATH 
 do
 ./build/bin/wif_demo_core_airfoil $file
-break
 done
 source unset_env.sh
