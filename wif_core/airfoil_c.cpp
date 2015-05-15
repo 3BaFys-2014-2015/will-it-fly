@@ -40,7 +40,7 @@ airfoil_c::airfoil_c(const std::string & filename)
 	detect.close();
 	std::ifstream data(filename);
 
-	if(!data.is_open())
+	if(!data.good())
 	{
 		std::cout << "Could not open file." << filename << std::endl;
 		return; //just give up if file does not open

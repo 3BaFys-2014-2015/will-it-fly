@@ -20,9 +20,21 @@ int main(int argc, char * argv[])
 		std::cout << filename1 << std::endl;
 		wif_core::airfoil_c airfoil1(filename1);
 		std::cout << airfoil1;
-		//std::cout << airfoil1.closed_merge();
-		//std::cout << airfoil1.closed_intersect(0);
-		//std::cout << airfoil1.get_circle_projection(8, wif_core::vector_2d_c(0.5, 0), 0.5, 0.0001);
+		std::cout << airfoil1.closed_merge();
+		std::cout << airfoil1.closed_intersect(0);
+		std::cout << airfoil1.get_circle_projection(8, wif_core::vector_2d_c(0.5, 0), 0.5, 0.0001);
+
+		for(wif_core::line_2d_c line : airfoil1.get_lines())
+		{
+			std::cout << line.get_length() << ",";
+		}
+
+		std::cout << std::endl;
+
+		for(wif_core::line_2d_c line : airfoil1.get_circle_projection(8, wif_core::vector_2d_c(0.5, 0), 0.5, 0.0001).get_lines())
+		{
+			std::cout << line.get_length() << ",";
+		}
 	}
 
 	//break;
@@ -48,9 +60,9 @@ int main(int argc, char * argv[])
 	wif_core::airfoil_c airfoil(test, "flat");
 	std::cout << airfoil;
 	std::cout << airfoil.get_circle_projection(10, wif_core::vector_2d_c(0.5, 0.0), 0.5);
-	*/
+
 	wif_core::airfoil_c airfoil3(wif_core::vector_2d_c(0.5, 0.0), 0.5, 8);
-	std::cout << airfoil3;
+	std::cout << airfoil3;*/
 
 
 	return 0; // Komaan mensen? return code vergeten????
