@@ -321,7 +321,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 		double matrix_A_data [num_rows * num_columns];
 		double vector_b_data [num_columns];
 		int k = 0; //first panel
-		int l = num_lines; //last panel
+		int l = num_lines-1; //last panel
 		struct integration_function_parameters parameters;
 
 		gsl_matrix_view matrix_A_view
@@ -474,7 +474,6 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 		}
 
 		double Gamma = gsl_vector_get(x, num_lines);
-
 		//printf("a = \n");
 		//gsl_matrix_fprintf(stdout, &matrix_A_view.matrix, "%g");
 
@@ -503,12 +502,13 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 					V_FUNC.function = &v_t_vortex_function;
 					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
-					v_t_i -= Gamma / (2 * pi) * result;
+					v_t_i -= (Gamma / (2 * pi)) * result;
+
 				}
 
 			}
 
-			c_p[i] = 1 - pow((-U_inf * sin(angles[i] + angle_attack) + v_t_i) / U_inf, 2);
+			c_p[i] = 1.0 - pow((U_inf * (-sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack)) + v_t_i) / U_inf, 2);
 		}
 
 		//Calculate c_l
