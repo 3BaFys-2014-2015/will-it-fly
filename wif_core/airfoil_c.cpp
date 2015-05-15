@@ -52,6 +52,10 @@ airfoil_c::airfoil_c(const std::string & filename)
 
 		std::getline(data, this->name);
 		std::getline(data, data_pit);
+		double x;
+		double y;
+		data >> x >> y;
+
 
 		while(data.good())
 		{

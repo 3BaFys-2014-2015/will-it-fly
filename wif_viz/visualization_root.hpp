@@ -18,7 +18,7 @@ class visualization_root_c : public visualization_c
 {
 public:
 
-	
+
 	visualization_root_c(std::shared_ptr<flow_c> flow, const vector_2d_c & min_range, const vector_2d_c & max_range);
 
 	virtual ~visualization_root_c();
@@ -30,8 +30,8 @@ public:
 	void addArrows();
 
 	void fillbinStagnatie();
-	
-	void plotVectors(std::vector<std::vector<double>>,std::vector<double>,std::vector<std::string>);
+
+	void plotVectors(std::vector<std::vector<double>>, std::vector<double>, std::vector<std::string>);
 
 protected:
 	TH2F * velocity, *psi, *phi;

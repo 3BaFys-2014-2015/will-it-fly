@@ -280,42 +280,43 @@ void visualization_root_c::fillbinStagnatie()
 	stag->SetContour(1, contours);
 
 }
-void visualization_root_c::plotVectors(std::vector<std::vector<double>> yVector,std::vector<double> xVector,std::vector<std::string> legend)
+void visualization_root_c::plotVectors(std::vector<std::vector<double>> yVector, std::vector<double> xVector, std::vector<std::string> legend)
 {
-	
-	unsigned int aantalTH2F=yVector.size();
-	TLegend *leg = new TLegend(0.1,0.7,0.48,0.9);
+
+	unsigned int aantalTH2F = yVector.size();
+	TLegend * leg = new TLegend(0.1, 0.7, 0.48, 0.9);
 	leg->SetHeader("The Legend Title");
 	TCanvas * c = new TCanvas("c", "c", 1000, 1000);
-	for(unsigned int i=0;i<aantalTH2F;i++)
+
+	for(unsigned int i = 0; i < aantalTH2F; i++)
 	{
-		std::string number = std::to_string(i+4);
-		std::string harrname= "harr"+number;
+		std::string number = std::to_string(i + 4);
+		std::string harrname = "harr" + number;
 		const char * harrname2 = harrname.c_str();
-		double xBegin=xVector[0];
-		double xEnd=xVector[xVector.size()];
-		double yBegin=yVector[i][0];
-		double yEnd=yVector[i][yVector[i].size()];
-		TH2F* harr=new TH2F(harrname2,"test",xVector.size(), xBegin, xEnd, yVector[i].size(), yBegin, yEnd);
-		
-		
-		for(unsigned int j=0;j<yVector[i].size();j++)
+		double xBegin = xVector[0];
+		double xEnd = xVector[xVector.size()];
+		double yBegin = yVector[i][0];
+		double yEnd = yVector[i][yVector[i].size()];
+		TH2F * harr = new TH2F(harrname2, "test", xVector.size(), xBegin, xEnd, yVector[i].size(), yBegin, yEnd);
+
+
+		for(unsigned int j = 0; j < yVector[i].size(); j++)
 		{
-		 	for(unsigned int k=0;k<xVector.size();k++)
+			for(unsigned int k = 0; k < xVector.size(); k++)
 			{
-				harr->SetBinContent(xVector[k],yVector[i][j]);
+				harr->SetBinContent(xVector[k], yVector[i][j]);
 			}
 		}
-		
+
 		harr->Draw("scat=1 same");
-		std::string legende=legend[i];
+		std::string legende = legend[i];
 		const char * legendname = legende.c_str();
-		leg->AddEntry("harr",legendname,"f");
+		leg->AddEntry("harr", legendname, "f");
 	}
-	
+
 	leg->Draw();
 	c->SaveAs("test.pdf");
 	c->Destructor();
-	
+
 }
 }// namespace wif_viz

@@ -882,6 +882,7 @@
 			<Option target="demo_vtk_merel" />
 			<Option target="demo_wif_algo" />
 		</Unit>
+		<Unit filename="demos/demo_solve_234/main.cpp" />
 		<Unit filename="demos/demo_template/main.cpp">
 			<Option target="all" />
 			<Option target="demos" />
@@ -942,37 +943,6 @@
 			<Option target="demo_vtk_merel" />
 			<Option target="demo_wif_algo" />
 		</Unit>
-		<Unit filename="demos/demo_vtk_wtf/contours_test1.cpp">
-			<Option target="all" />
-			<Option target="demos" />
-			<Option target="wif" />
-			<Option target="wif_core" />
-			<Option target="wif_viz" />
-			<Option target="wif_algo" />
-			<Option target="clean" />
-			<Option target="demo_algo_diagonalizationspeed" />
-			<Option target="demo_algo_integrationspeed" />
-			<Option target="demo_algo_met_output" />
-			<Option target="demo_core_airfoil" />
-			<Option target="demo_core_flow_elements" />
-			<Option target="demo_core_vector_line" />
-			<Option target="demo_gsl_andy" />
-			<Option target="demo_gsl_diag" />
-			<Option target="demo_gsl_integral" />
-			<Option target="demo_root" />
-			<Option target="demo_root_algo_diag" />
-			<Option target="demo_root_algo_integral" />
-			<Option target="demo_vtk" />
-			<Option target="demo_vtk_comp_dolf" />
-			<Option target="demo_vtk_comp_kristof" />
-			<Option target="demo_vtk_comp_merel" />
-			<Option target="demo_vtk_comp_senne" />
-			<Option target="demo_vtk_dolf" />
-			<Option target="demo_vtk_large" />
-			<Option target="demo_vtk_merel" />
-			<Option target="demo_wif_algo" />
-		</Unit>
-
 		<Unit filename="demos/demo_vtk_comp_dolf/axes.cpp">
 			<Option target="all" />
 			<Option target="demos" />
@@ -1154,6 +1124,36 @@
 			<Option target="demo_wif_algo" />
 		</Unit>
 		<Unit filename="demos/demo_vtk_merel/main.cpp">
+			<Option target="all" />
+			<Option target="demos" />
+			<Option target="wif" />
+			<Option target="wif_core" />
+			<Option target="wif_viz" />
+			<Option target="wif_algo" />
+			<Option target="clean" />
+			<Option target="demo_algo_diagonalizationspeed" />
+			<Option target="demo_algo_integrationspeed" />
+			<Option target="demo_algo_met_output" />
+			<Option target="demo_core_airfoil" />
+			<Option target="demo_core_flow_elements" />
+			<Option target="demo_core_vector_line" />
+			<Option target="demo_gsl_andy" />
+			<Option target="demo_gsl_diag" />
+			<Option target="demo_gsl_integral" />
+			<Option target="demo_root" />
+			<Option target="demo_root_algo_diag" />
+			<Option target="demo_root_algo_integral" />
+			<Option target="demo_vtk" />
+			<Option target="demo_vtk_comp_dolf" />
+			<Option target="demo_vtk_comp_kristof" />
+			<Option target="demo_vtk_comp_merel" />
+			<Option target="demo_vtk_comp_senne" />
+			<Option target="demo_vtk_dolf" />
+			<Option target="demo_vtk_large" />
+			<Option target="demo_vtk_merel" />
+			<Option target="demo_wif_algo" />
+		</Unit>
+		<Unit filename="demos/demo_vtk_wtf/contours_test1.cpp">
 			<Option target="all" />
 			<Option target="demos" />
 			<Option target="wif" />
