@@ -882,6 +882,7 @@
 			<Option target="demo_vtk_merel" />
 			<Option target="demo_wif_algo" />
 		</Unit>
+		<Unit filename="demos/demo_solve_234/main.cpp" />
 		<Unit filename="demos/demo_template/main.cpp">
 			<Option target="all" />
 			<Option target="demos" />

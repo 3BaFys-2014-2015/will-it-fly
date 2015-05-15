@@ -116,16 +116,7 @@ void test_airfoil(wif_core::airfoil_c & foil)
 
 		vizy->draw_ivo("");
 	}
-	/*
-		{
-			std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-			vizy->set_phi_bins({101, 101});
-			vizy->set_contours(20);
-			vizy->set_airfoil(&foil);
 
-			vizy->draw_ivo("");
-		}
-	*/
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
 		vizy->set_velocity_bins({101, 101});
@@ -134,18 +125,9 @@ void test_airfoil(wif_core::airfoil_c & foil)
 
 		vizy->draw_ivo("");
 	}
-
-	/*
-	{
-		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, {0.9, -0.1}, {1.1, 0.1});
-		vizy->set_velocity_bins({101, 101});
-		//vizy->set_streamline_resolution(100);
-		vizy->set_airfoil(&foil);
-
-		vizy->draw_ivo("");
-	}
-	*/
 }
+
+
 
 void test_uniflow(bool screen)
 {
@@ -312,8 +294,35 @@ void tests()
 }
 
 
-int main()
+int main(int argc, char ** argv)
 {
-	tests();
+#if 0
+
+	if(argc != 2)
+	{
+		std::cout << "No filename" << std::endl;
+		return 0;
+	}
+
+	std::string filename = argv[1];
+#else
+	//std::string filename = "../../../coord_seligFmt/mh114.dat";
+	//std::string filename = "../../wif_core/airfoils/lednicer.dat";
+	std::string filename = "../../wif_core/airfoils/n0012-il.dat";
+#endif
+	wif_core::airfoil_c a = wif_core::airfoil_c(filename);
+
+	if(!a.is_valid())
+	{
+		std::cout << "Error loading datafile" << std::endl;
+		return 0;
+	}
+
+	//.closed_intersect(0)/*.get_circle_projection(10, {0.5, 0.0}, 0.5)*/;
+
+	a = a.closed_intersect(0);
+
+	test_airfoil(a);
+
 	return 0;
 }

@@ -301,18 +301,10 @@ void visualization_vtk_c::draw_ivo(const std::string & filename)
 		renWin->AddRenderer(renderer);
 		renWin->SetSize(1000 , 1000);
 
-		vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
-
-		vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-
-		iren->SetInteractorStyle(style);
-		iren->SetRenderWindow(renWin);
-
 		renderer->SetBackground(1, 1, 1);     // stelt de kleur van de achtergrond in
 		renderer->ResetCamera();
 
 		renWin->AddRenderer(renderer);
-		iren->SetRenderWindow(renWin);
 
 		bool axes_drawed = false;
 
@@ -563,12 +555,36 @@ void visualization_vtk_c::draw_ivo(const std::string & filename)
 
 		renderer->ResetCamera();
 
+		vtkSmartPointer<vtkInteractorStyle> style;
+
+		bool draw_to_file = false;
+
+		if(draw_to_file)
+		{
+			style = vtkSmartPointer<vtkInteractorStyleImage>::New();
+		}
+		else
+		{
+			style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
+		}
+
+		vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+
+		iren->SetInteractorStyle(style);
+		iren->SetRenderWindow(renWin);
 
 		iren->Initialize();
 		renWin->Render();
-		//print_image(renWin, "test.png");
-		iren->Start();
 
+		if(!draw_to_file)
+		{
+			iren->Start();
+		}
+
+		if(draw_to_file)
+		{
+			print_image(renWin, "test.png");
+		}
 
 		iren->TerminateApp();
 	}
@@ -1389,7 +1405,7 @@ void visualization_vtk_c::print_image(vtkSmartPointer<vtkRenderWindow> renderWin
 {
 	vtkSmartPointer<vtkWindowToImageFilter> windowToImageFilter = vtkSmartPointer<vtkWindowToImageFilter>::New();
 	windowToImageFilter->SetInput(renderWindow);
-	windowToImageFilter->SetMagnification(2); //set the resolution of the output image (3 times the current resolution of vtk render window)
+	windowToImageFilter->SetMagnification(1); //set the resolution of the output image (3 times the current resolution of vtk render window)
 	windowToImageFilter->SetInputBufferTypeToRGBA(); //also record the alpha (transparency) channel
 	windowToImageFilter->ReadFrontBufferOff(); // read from the back buffer
 	windowToImageFilter->Update();
