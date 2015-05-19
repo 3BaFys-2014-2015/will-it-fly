@@ -150,20 +150,29 @@ int main()
 	c_p_boven.pop_back();
 	c_p_boven.erase(c_p_boven.begin());
 
-	std::reverse(c_p_onder.begin(), c_p_onder.end());
-	c_p_onder.pop_back();
+	std::reverse(c_p_boven.begin(), c_p_boven.end());
+	//c_p_boven.pop_back();
 	c_p_data[0] = c_p_boven;
 	c_p_data[1] = c_p_onder;
+
 	std::vector<double> c_p_differences;
 
-	for(unsigned int i = 0; i < c_p_boven.size(); i++)
+	for(unsigned int i = 0; i < c_p_onder.size(); i++)
 	{
 		c_p_differences.push_back(c_p_boven[i] - c_p_onder[i]);
 	}
 
+	std::cout << c_p_differences.size() << std::endl;
+	std::cout << c_p_boven.size() << std::endl;
+	std::cout << c_p_onder.size() << std::endl;
+	std::cout << x_as_onder.size() << std::endl;
+
 	c_p_data[2] = c_p_differences;
+	std::cout << 5 << std::endl;
 	std::shared_ptr<wif_viz::visualization_c> myRoot = wif_viz::create_visualization_root(myFlow, midpoint, midpoint);
-	myRoot->plotVectors(c_p_data, x_as_onder, Legend, "lel.png", "x", "cp", "Aantal panelen = 49, Alpha = 45, Met Kutta");
+	std::cout << 6 << std::endl;
+	myRoot->plotVectors(c_p_data, x_as_onder, Legend, "lel.png", "x", "cp", "Aantal panelen = 100, Alpha = 45, Met Kutta");
+	std::cout << 7 << std::endl;
 
 	//Opdracht 15
 	/*double radius = 2;
@@ -255,7 +264,7 @@ int main()
 	wif_algo::calculation_results_c calculate_flow3 = wif_algo::calculate_flow(myAirfoil2, myFlow, Kutta);
 	wif_algo::calculation_results_c calculate_flow4 = wif_algo::calculate_flow(myAirfoil3, myFlow, Kutta);
 
-	std::cout << calculate_flow2.c_l << "   " << calculate_flow3.c_l << "   " << calculate_flow4.c_l << std::endl;
+	std::cout << calculate_flow2.c_l << "   " << calculate_flow3.c_l << "   " << calculate_flow4.c_l << std::endl;*/
 
 	return 0;
-	}
+}

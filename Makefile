@@ -75,7 +75,7 @@ team_viz_demos : vtk_compilatie_demos demo_vtk demo_vtk_large demo_root
 
 team_core_demos :
 
-team_algo_demos : root_algo_demos gsl_demos demo_algo_diagonalizationspeed demo_algo_integrationspeed demo_wif_algo demo_wif_algo_amy  demo_wif_algo_closedbodycheck demo_wif_algo_cptest
+team_algo_demos : root_algo_demos gsl_demos demo_algo_diagonalizationspeed demo_algo_integrationspeed demo_wif_algo demo_wif_algo_amy  demo_wif_algo_closedbodycheck demo_wif_algo_cptest demo_dieter_opdracht
 
 vtk_compilatie_demos : demo_vtk_comp_dolf demo_vtk_comp_kristof demo_vtk_comp_merel demo_vtk_comp_senne demo_vtk_merel demo_vtk_wtf
 
