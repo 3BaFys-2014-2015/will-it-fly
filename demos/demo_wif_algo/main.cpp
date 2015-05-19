@@ -6,6 +6,16 @@
 #include <wif_algo/wif_algo.hpp>
 #include <wif_viz/wif_viz.hpp>
 
+/*
+#include <TCanvas.h>
+#include <TH2D.h>
+#include <TGraph.h>
+#include <TStyle.h>
+#include <TColor.h>
+#include <TLegend.h>
+#include <TGraph.h>
+*/
+
 int main()
 {
 	double pi = 3.1415;
@@ -45,5 +55,53 @@ int main()
 
 	//myfile.close();
 
+
+	////////////////////////Plot////////////////////////
+
+
+	/*
+	TCanvas * canvas = new TCanvas("canvas", "Name", 0, 0, 800, 800);
+	canvas->SetRightMargin(0.15);
+	canvas->SetTopMargin(0.15);
+	canvas->SetFillColor(18);
+
+	std::vector<double> y(num_lines);
+
+	for(int i = 0; i < num_lines; i++)
+	{
+		y[i] = centers[i].y;
+	}
+
+	TGraph * cp = new TGraph(100, y, calculate_flow2.c_p);
+
+	gStyle->SetTitleW(0.99);
+	gStyle->SetTitleH(0.08);
+
+	cp->Draw("AC*");
+	cp->GetXaxis()->SetTitle("y");
+	cp->GetYaxis()->SetTitle("Drukcoefficient");
+	cp->SetTitle("Drukcoefficient, r=a");
+
+
+	std::vector<double> druk(num_lines);
+
+	for(int i = 0; i < 100; i++)
+	{
+		druk[i] = 1 - 4 * pow(centers[i].y / radius, 2);
+	}
+
+	TGraph * cp_t = new TGraph(100, centers.y, druk);
+	cp_t->SetLineColor(3);
+	cp_t->Draw("SAME");
+
+
+	TLegend * leg = new TLegend(0.12, 0.14, 0.3, 0.33);
+	leg->AddEntry("cp", "Drukcoefficient", "l");
+	leg->AddEntry("druk2", "1-4(y/R)^2", "l");
+	leg->Draw("SAME");
+
+	cc->Update();
+	cc->Print("drukcoefficient.pdf");
+	*/
 	return 0;
 }

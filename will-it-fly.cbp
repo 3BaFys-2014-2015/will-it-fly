@@ -1213,6 +1213,8 @@
 			<Option target="demo_vtk_merel" />
 			<Option target="demo_wif_algo" />
 		</Unit>
+		<Unit filename="demos/demo_wif_algo_amy/Makefile" />
+		<Unit filename="demos/demo_wif_algo_amy/main.cpp" />
 		<Unit filename="wif_algo/wif_algo.cpp">
 			<Option target="all" />
 			<Option target="demos" />

@@ -39,8 +39,8 @@ libs : wifcore wifalgo wifviz
 
 # Makefile demos
 
-builddir : 
-	mkdir -p ./build	
+builddir :
+	mkdir -p ./build
 	mkdir -p ./build/doc
 	mkdir -p ./build/obj
 	mkdir -p ./build/include
@@ -73,9 +73,9 @@ core_demos : demo_core_vector_line demo_core_flow_elements demo_core_airfoil dem
 
 team_viz_demos : vtk_compilatie_demos demo_vtk demo_vtk_large demo_root
 
-team_core_demos : 
+team_core_demos :
 
-team_algo_demos : root_algo_demos gsl_demos demo_algo_diagonalizationspeed demo_algo_integrationspeed demo_wif_algo demo_dieter_opdracht demo_andy_opdracht
+team_algo_demos : root_algo_demos gsl_demos demo_algo_diagonalizationspeed demo_algo_integrationspeed demo_wif_algo demo_wif_algo_amy  demo_wif_algo_closedbodycheck demo_wif_algo_cptest
 
 vtk_compilatie_demos : demo_vtk_comp_dolf demo_vtk_comp_kristof demo_vtk_comp_merel demo_vtk_comp_senne demo_vtk_merel demo_vtk_wtf
 
@@ -132,5 +132,4 @@ uninstall:
 	rm -rf $(INSTALL_PATH)/include/wif_viz
 	rm -f $(INSTALL_PATH)/bin/wif
 	echo "Done"
-	
 

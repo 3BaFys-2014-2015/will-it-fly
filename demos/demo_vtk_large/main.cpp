@@ -103,16 +103,23 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		return;
 	}
 
-	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180.0, 1.0);
+	wif_core::vector_2d_c centre(0.5, 0.0);
+	wif_core::airfoil_c circle(centre, 0.5, 20);
+	//wif_core::line_2d_c line(0.0, -1.0, 0.0, 1.0);
 
-	auto result = wif_algo::calculate_flow(foil, flow, false, 0.0);
+	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180, 1.0);
+
+	auto result = wif_algo::calculate_flow(circle, flow, false, 0.0);
+
+	//std::shared_ptr<wif_core::flow_accumulate_c> flowacc = std::make_shared<wif_core::flow_accumulate_c>(flow);
+	//flowacc->add_source_sheet(line, 1.0)
 
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
 		vizy->set_psi_bins({101, 101});
 		vizy->set_phi_bins({101, 101});
 		vizy->set_contours(20);
-		vizy->set_airfoil(&foil);
+		vizy->set_airfoil(&circle);
 
 		vizy->draw_ivo("");
 	}
@@ -121,7 +128,7 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
 		vizy->set_velocity_bins({101, 101});
 		vizy->set_streamline_resolution(100);
-		vizy->set_airfoil(&foil);
+		vizy->set_airfoil(&circle);
 
 		vizy->draw_ivo("");
 	}
@@ -288,7 +295,7 @@ void tests()
 	//test_sheet(screen);
 	//test_source(screen);
 
-	wif_core::airfoil_c a = wif_core::airfoil_c("../../wif_core/airfoils/selig.dat").closed_intersect(0)/*.get_circle_projection(10, {0.5, 0.0}, 0.5)*/;
+	wif_core::airfoil_c a = wif_core::airfoil_c("./wif_core/airfoils/selig.dat").closed_intersect(0)/*.get_circle_projection(10, {0.5, 0.0}, 0.5)*/;
 
 	test_airfoil(a);
 }

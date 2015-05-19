@@ -268,7 +268,7 @@ void visualization_root_c::fillbinStagnatie()
 				double velstag = sqrt(pow(vel.x, 2) + pow(vel.y, 2));
 
 
-				if(velstag <= 0.05)
+				if(velstag <= stagnation_tolerance)
 				{
 					stag->SetBinContent(i, j, 10);
 				}
