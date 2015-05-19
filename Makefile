@@ -10,7 +10,7 @@ PATH:=/home/uauser/Software/root-v5.34.25/builddir/bin:$(PATH)
 LD_LIBRARY_PATH:=/home/uauser/Software/root-v5.34.25/builddir/lib:$(LD_LIBRARY_PATH)
 
 export CXX=g++ -std=c++11
-export CXX_FLAGS=-Wall
+export CXX_FLAGS=-Wall -g
 export BUILD_SUFFIX=
 
 INCLUDE=-I./build/include

@@ -70,12 +70,14 @@ int main()
 
 
 	//Opdracht 14
-	double radius = 1;
+	double radius = 0.5;
 	unsigned int num_lines = 100;
-	wif_core::vector_2d_c midpoint(0, 0);
-	wif_core::airfoil_c myAirfoil("wif_core/airfoils/selig.dat");
+	wif_core::vector_2d_c midpoint(0.5, 0);
+	wif_core::airfoil_c myAirfoil("../../wif_core/airfoils/selig.dat");
+
 	myAirfoil = myAirfoil.get_circle_projection(num_lines, midpoint, radius, 0.0001);
 	myAirfoil = myAirfoil.closed_merge();
+
 	double angle_in_degrees = 45;
 	std::shared_ptr<wif_core::uniform_flow_c> myFlow = std::make_shared<wif_core::uniform_flow_c>((angle_in_degrees / 180) * pi, 1);
 	bool Kutta = 1;
@@ -83,18 +85,19 @@ int main()
 	wif_algo::calculation_results_c myResults = wif_algo::calculate_flow(myAirfoil, myFlow, Kutta);
 
 	std::vector<wif_core::line_2d_c> mylines = myAirfoil.get_lines();
-	std::vector<wif_core::vector_2d_c> centers(num_lines);
-	std::vector<double> angles(num_lines);
+	std::vector<wif_core::vector_2d_c> centers(mylines.size());
+	std::vector<double> angles(mylines.size());
 	std::vector<double> c_p_boven;
 	std::vector<double> x_as_boven;
 	std::vector<double> c_p_onder;
 	std::vector<double> x_as_onder;
 
 
-	for(unsigned int i = 0; i < num_lines; i++)
+	for(unsigned int i = 0; i < mylines.size(); i++)
 	{
 		wif_core::line_2d_c temp_line = mylines[i];
-		centers[i] = temp_line.get_center_point();
+		centers[i] = mylines[i].get_center_point();
+		std::cout << centers[i] << std::endl;
 
 		if(temp_line.begin.x > temp_line.end.x && temp_line.begin.y > temp_line.end.y)
 		{
@@ -125,12 +128,12 @@ int main()
 			std::cout << i << "  Not in any of these categories" << std::endl;
 		}
 
-		if(centers[i].y > 0)
+		if(centers[i].y > 0.0)
 		{
 			c_p_boven.push_back(myResults.c_p[i]);
 			x_as_boven.push_back(centers[i].x);
 		}
-		else if(centers[i].y < 0)
+		else if(centers[i].y < 0.0)
 		{
 			c_p_onder.push_back(myResults.c_p[i]);
 			x_as_onder.push_back(centers[i].x);
