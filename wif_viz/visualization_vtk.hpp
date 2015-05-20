@@ -75,16 +75,9 @@ public:
 
 	virtual ~visualization_vtk_c();
 
-	//
-	//virtual void set_velocityarrows(const vector_2d_c & bins);
-
-	virtual void draw(const std::string & filename = "");
-
-	virtual void draw_ivo(const std::string & filename = "");
+	virtual void draw(const std::string & name = "");
 
 private:
-	double vtkMax = 500;
-
 	vtkSmartPointer<vtkPoints> construct_points(const vector_2d_c & binning) const;
 
 	vtkSmartPointer<vtkDoubleArray> construct_field(const vector_2d_c & binning, bool scalar) const;
@@ -93,21 +86,9 @@ private:
 
 	vtkSmartPointer<vtkStructuredGrid> construct_psi_grid() const;
 
-	vtkSmartPointer<vtkPlaneSource> construct_psi_plane() const;
-
 	vtkSmartPointer<vtkStructuredGrid> construct_phi_grid() const;
 
-	vtkSmartPointer<vtkPlaneSource> construct_phi_plane() const;
-
 	vtkSmartPointer<vtkStructuredGrid> construct_velocity_grid() const;
-
-	void contour_plot(vtkSmartPointer<vtkPlaneSource> plane, std::vector<double> contlvls) const; //int ncont
-
-	void streamlines_plot(vtkSmartPointer<vtkStructuredGrid> sgrid, uint32_t number_of_streamlines) const;
-
-	void arrow_plot() const;
-
-	void print_image(vtkSmartPointer<vtkRenderWindow> renderWindow, const char * filename) const;
 
 	vtkSmartPointer<vtkActor> separating_streamlines(vtkSmartPointer<vtkPlaneSource> plane) const;
 
@@ -115,23 +96,7 @@ private:
 
 	vtkSmartPointer<vtkActor> geef_actor_punten(std::vector<wif_core::vector_2d_c>);
 
-	vtkSmartPointer<vtkCubeAxesActor> axis(vtkSmartPointer<vtkPlaneSource> object, vtkSmartPointer<vtkRenderer> renderer) const;
-
-	vtkSmartPointer<vtkCubeAxesActor> axis(vtkSmartPointer<vtkGlyph3D> object, vtkSmartPointer<vtkRenderer> renderer) const;
-
-	vtkSmartPointer<vtkCubeAxesActor> axis(vtkSmartPointer<vtkStructuredGrid> object, vtkSmartPointer<vtkRenderer> renderer) const;
-
-
 	void get_data_range(double & min, double & max, std::vector<double> & contours, vtkSmartPointer<vtkStructuredGrid> grid) const;
-
-	virtual void set_color_scaling(const std::vector<uint32_t> & scaling);
-
-	virtual void set_automatic_color_scaling(uint32_t levels);
-
-	vtkSmartPointer<vtkLookupTable> color_scaling;
-
-	/*private:
-		std::vector<vtkSmartPointer<vtkActor>> actors;*/
 };
 
 

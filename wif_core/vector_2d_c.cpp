@@ -29,6 +29,12 @@ vector_2d_c::vector_2d_c() :
 }
 
 
+bool vector_2d_c::operator==(const vector_2d_c & other) const
+{
+	return (*this - other).get_length_sq() < 0.000001;
+}
+
+
 vector_2d_c & vector_2d_c::operator=(const vector_2d_c & other)
 {
 	this->x = other.x;

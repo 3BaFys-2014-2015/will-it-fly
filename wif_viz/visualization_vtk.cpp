@@ -66,9 +66,9 @@ namespace wif_viz
 
 
 visualization_vtk_c::visualization_vtk_c(std::shared_ptr<flow_c> flow, const vector_2d_c & min_range, const vector_2d_c & max_range) :
-	visualization_c(flow, min_range, max_range)/*, actors()*/
+	visualization_c(flow, min_range, max_range)
 {
-	//this-> actors = vtkSmartPointer<vtkActor>::New();
+	//
 }
 
 
@@ -93,43 +93,6 @@ void write_to_file(vtkSmartPointer<vtkStructuredGrid> grid, const std::string & 
 	writer->SetFileName(name.c_str());
 	writer->SetInput(grid);
 	writer->Write();
-}
-
-float red(uint32_t col)
-{
-	return ((double)((col & 0xff0000) >> 16)) / 255.0;
-}
-
-float green(uint32_t col)
-{
-	return ((double)((col & 0xff00) >> 8)) / 255.0;
-}
-
-float blue(uint32_t col)
-{
-	return ((double)(col & 0xff)) / 255.0;
-}
-
-void add_color_point(vtkColorTransferFunction * ctf, double p, uint32_t hex)
-{
-	ctf->AddRGBPoint(p, red(hex), green(hex), blue(hex));
-}
-
-void add_color_points(vtkColorTransferFunction * ctf, double min, double max, const std::vector<uint32_t> colors)
-{
-	const double delta = (max - min) / ((double)colors.size());
-
-	ctf->SetNanColor(0, 1, 0);
-	ctf->AddRGBPoint(min, 1, 0, 0);
-	ctf->AddRGBPoint(max, 0, 0, 1);
-
-	add_color_point(ctf, std::nextafter(min, std::numeric_limits<double>::infinity()), colors.front());
-	add_color_point(ctf, std::nextafter(max, -std::numeric_limits<double>::infinity()), colors.back());
-
-	for(uint32_t i = 1; i < (colors.size() - 2); i++)
-	{
-		add_color_point(ctf, min + delta * i, colors[i]);
-	}
 }
 
 vtkSmartPointer<vtkCleanPolyData> clip_into_pieces(vtkSmartPointer<vtkStructuredGrid> grid, const std::vector<double> & levels)
@@ -202,7 +165,7 @@ vtkSmartPointer<vtkCleanPolyData> clip_into_pieces(vtkSmartPointer<vtkStructured
 
 	return pieces;
 }
-
+/*
 void create_contour_actors(vtkSmartPointer<vtkStructuredGrid> grid, const std::vector<double> & levels, vtkSmartPointer<vtkActor> contour_levels, vtkSmartPointer<vtkActor> contour_lines)
 {
 	vtkSmartPointer<vtkCleanPolyData> clips = clip_into_pieces(grid, levels);
@@ -245,329 +208,278 @@ void create_contour_actors(vtkSmartPointer<vtkStructuredGrid> grid, const std::v
 	}
 }
 
-void visualization_vtk_c::get_data_range(double & min, double & max, std::vector<double> & contours, vtkSmartPointer<vtkStructuredGrid> grid) const
+*/
+
+void data_range_two(double & min_v, double & max_v, vtkSmartPointer<vtkStructuredGrid> grid)
 {
-	if(this->clip_min == this->clip_max)
+	double values[2];
+
+	grid->GetPointData()->GetScalars()->GetRange(values);
+
+	min_v = values[0];
+	max_v = values[1];
+}
+
+void fix_contour_range(double min_v, double max_v, std::vector<double> & contours)
+{
+	if(contours.size() == 0)
 	{
-		double values[2];
+		contours.resize(10, 0);
+	}
 
-		grid->GetPointData()->GetScalars()->GetRange(values);
+	double min_c = *std::min_element(contours.begin(), contours.end());
+	double max_c = *std::max_element(contours.begin(), contours.end());
 
-		min = values[0];
-		max = values[1];
+	if((min_c < min_v) || (max_c > max_v) || (min_c == max_c))
+	{
+		std::cout << "Rescaling contours" << std::endl;
 
-		double delta = (max - min) / ((double)contours.size() - 1);
+		double delta = (max_v - min_v) / ((double)contours.size() - 1);
 
 		for(uint32_t i = 0; i < contours.size(); i++)
 		{
-			contours[i] = min + i * delta;
+			contours[i] = min_v + i * delta;
 		}
-	}
-	else
-	{
-		min = this->clip_min;
-		max = this->clip_max;
 	}
 
 	std::sort(contours.begin(), contours.end());
 }
 
-void visualization_vtk_c::draw_ivo(const std::string & filename)
+void visualize_scalar_field(const scalar_field_c & field, vtkSmartPointer<vtkStructuredGrid> grid, vtkSmartPointer<vtkRenderer> renderer)
 {
-	if((filename.size() > 1) && (filename.find('.') == std::string::npos))
+	if((field.style & ESDS_GRADIENT) && (field.style & ESDS_DISCRETE))
 	{
-		/// Enkel uitvoeren als de filename geen extensie heeft.
+		std::cout << "Can't draw both a gradient scalar field, and a discrete one." << std::endl;
+		return;
+	}
 
-		if(one_is_zero(psi_bins))
+	double min_v = 0.0;
+	double max_v = 0.0;
+
+	data_range_two(min_v, max_v, grid);
+
+	if(field.style & ESDS_GRADIENT)
+	{
+		vtkSmartPointer<vtkDataSetMapper> data_set_mapper = vtkSmartPointer<vtkDataSetMapper>::New();
+		data_set_mapper->SetInput(grid);
+		data_set_mapper->SetScalarRange(min_v, max_v);
+		data_set_mapper->InterpolateScalarsBeforeMappingOn();
+
+        vtkSmartPointer<vtkScalarBarActor> scalar_bar = vtkSmartPointer<vtkScalarBarActor>::New();
+        scalar_bar->SetLookupTable(data_set_mapper->GetLookupTable());
+        renderer->AddActor(scalar_bar);
+
+		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+		actor->SetMapper(data_set_mapper);
+		actor->GetProperty()->SetInterpolationToFlat();
+
+		renderer->AddActor(actor);
+	}
+
+	if((field.style & ESDS_DISCRETE) || (field.style & ESDS_CONTOURS))
+	{
+		std::vector<double> corrected_contours = field.contour_locations;
+
+		fix_contour_range(min_v, max_v, corrected_contours);
+
+		vtkSmartPointer<vtkCleanPolyData> filled_contours = clip_into_pieces(grid, corrected_contours);
+
+		if(field.style & ESDS_DISCRETE)
 		{
-			write_to_file(construct_psi_grid(), filename + "-psi.vtk");
+			vtkSmartPointer<vtkLookupTable> lut2 = vtkSmartPointer<vtkLookupTable>::New();
+			lut2->SetNumberOfTableValues(corrected_contours.size() + 1);
+			lut2->Build();
+
+			vtkSmartPointer<vtkPolyDataMapper> contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+			contourMapper->SetInput(filled_contours->GetOutput());
+			contourMapper->SetScalarRange(min_v, max_v);
+			contourMapper->SetScalarModeToUseCellData();
+			contourMapper->SetLookupTable(lut2);
+			contourMapper->Update();
+
+			vtkSmartPointer<vtkScalarBarActor> scalar_bar = vtkSmartPointer<vtkScalarBarActor>::New();
+			scalar_bar->SetLookupTable(lut2);
+			renderer->AddActor(scalar_bar);
+
+			vtkSmartPointer<vtkActor> contourActor = vtkSmartPointer<vtkActor>::New();
+			contourActor->SetMapper(contourMapper);
+			contourActor->GetProperty()->SetInterpolationToFlat();
+			renderer->AddActor(contourActor);
 		}
 
-		if(one_is_zero(phi_bins))
+		if(field.style & ESDS_CONTOURS)
 		{
-			write_to_file(construct_phi_grid(), filename + "-phi.vtk");
+			vtkSmartPointer<vtkContourFilter> contour_filter = vtkSmartPointer<vtkContourFilter>::New();
+			contour_filter->SetInput(filled_contours->GetOutput());
+			contour_filter->GenerateValues(corrected_contours.size(), min_v, max_v);
+
+			vtkSmartPointer<vtkPolyDataMapper> poly_data_mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+			poly_data_mapper->SetInput(contour_filter->GetOutput());
+			poly_data_mapper->SetScalarRange(min_v, max_v);
+			poly_data_mapper->ScalarVisibilityOff();
+
+			vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+			actor->SetMapper(poly_data_mapper);
+			actor->GetProperty()->SetLineWidth(5);
+
+			renderer->AddActor(actor);
+		}
+	}
+}
+
+void visualize_vector_field(const vector_field_c & field, vtkSmartPointer<vtkStructuredGrid> grid, vtkSmartPointer<vtkRenderer> renderer)
+{
+	if(field.style & EVDS_ARROWS)
+	{
+		vtkSmartPointer<vtkArrowSource> arrow_source = vtkSmartPointer<vtkArrowSource>::New();
+
+		vtkSmartPointer<vtkGlyph3D> glyph_3d = vtkSmartPointer<vtkGlyph3D>::New();
+		glyph_3d->SetSourceConnection(arrow_source->GetOutputPort());
+#if VTK_MAJOR_VERSION <= 5
+		glyph_3d->SetInput(grid);
+#else
+		glyph_3d->SetInputData(grid);
+#endif
+		glyph_3d->SetColorMode(2);
+		glyph_3d->SetScaleFactor(field.arrow_scale);
+		glyph_3d->Update();
+
+		vtkSmartPointer<vtkPolyDataMapper> poly_data_mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		poly_data_mapper->SetInputConnection(glyph_3d->GetOutputPort());
+
+		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+		actor->SetMapper(poly_data_mapper);
+		actor->GetProperty()->SetRepresentationToSurface();
+
+		renderer->AddActor(actor);
+	}
+
+	if(field.style & EVDS_STREAMLINES)
+	{
+		if(field.streamline_resolution == 0)
+		{
+			std::cout << "Streamline resolution is zero, nothing will be drawn." << std::endl;
+		}
+		else
+		{
+			vtkSmartPointer<vtkLineSource> seeds = vtkSmartPointer<vtkLineSource>::New();
+			seeds->SetResolution(field.streamline_resolution);
+
+			if(field.streamline_seeds.begin == field.streamline_seeds.end)
+			{
+				seeds->SetPoint1(field.streamline_seeds.begin.x, field.streamline_seeds.begin.y, 0);
+				seeds->SetPoint2(field.streamline_seeds.end.x, field.streamline_seeds.end.y, 0);
+			}
+			else
+			{
+				seeds->SetPoint1(field.streamline_seeds.begin.x, field.streamline_seeds.begin.y, 0);
+				seeds->SetPoint2(field.streamline_seeds.end.x, field.streamline_seeds.end.y, 0);
+			}
+
+			vtkSmartPointer<vtkStreamLine> stream_line = vtkSmartPointer<vtkStreamLine>::New();
+			stream_line->SetInput(grid);
+			stream_line->SetSource(seeds->GetOutput());
+			stream_line->SetMaximumPropagationTime(20);
+			stream_line->SetIntegrationStepLength(.2);
+			stream_line->SetStepLength(.001);
+			stream_line->SetNumberOfThreads(1);
+			stream_line->SetIntegrationDirectionToForward();
+
+			vtkSmartPointer<vtkPolyDataMapper> poly_data_mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+			poly_data_mapper->SetInputConnection(stream_line->GetOutputPort());
+
+			vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+			actor->SetMapper(poly_data_mapper);
+			actor->GetProperty()->SetColor(0, 0.2, 0.5);
+			actor->GetProperty()->SetLineWidth(3);
+			actor->VisibilityOn();
+
+			renderer->AddActor(actor);
+		}
+	}
+}
+
+void visualization_vtk_c::draw(const std::string & name)
+{
+	if(this->global_settings.output_to_file)
+	{
+		if(one_is_zero(this->psi_field.bins))
+		{
+			write_to_file(construct_psi_grid(), name + "-psi.vtk");
 		}
 
-		if(one_is_zero(velocity_bins))
+		if(one_is_zero(this->phi_field.bins))
 		{
-			write_to_file(construct_velocity_grid(), filename + "-velocity.vtk");
+			write_to_file(construct_phi_grid(), name + "-phi.vtk");
+		}
+
+		if(one_is_zero(this->v_field.bins))
+		{
+			write_to_file(construct_velocity_grid(), name + "-velocity.vtk");
 		}
 	}
 	else
 	{
 		vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-
 		vtkSmartPointer<vtkRenderWindow> renWin = vtkSmartPointer<vtkRenderWindow>::New();
-		renWin->AddRenderer(renderer);
-		renWin->SetSize(1000 , 1000);
 
-		renderer->SetBackground(1, 1, 1);     // stelt de kleur van de achtergrond in
+		renWin->AddRenderer(renderer);
+		renWin->SetSize(1000, 1000);
+		renWin->SetWindowName(name.c_str());
+
+		renderer->SetBackground(1, 1, 1);
 		renderer->ResetCamera();
 
-		renWin->AddRenderer(renderer);
-
-		bool axes_drawed = false;
-
-		if(one_is_zero(psi_bins))
+		if(this->global_settings.draw_scale)
 		{
-			vtkSmartPointer<vtkStructuredGrid> psi_grid = construct_psi_grid();
+			vtkSmartPointer<vtkCubeAxesActor> axes = vtkSmartPointer<vtkCubeAxesActor>::New();
+			axes->SetBounds(min_range.x, max_range.x, min_range.y, max_range.y, 0, 0);
 
-			vtkSmartPointer<vtkDataSetMapper> mapperveld = vtkDataSetMapper::New();
-			mapperveld->SetInput(psi_grid);
-
-			double min_v = 0.0;
-			double max_v = 0.0;
-
-			std::vector<double> corrected_contours = this->contour_locations;
-
-			get_data_range(min_v, max_v, corrected_contours, psi_grid);
-
-			//
-
-			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
-
-			std::vector<uint32_t> colors({0x134e5e, 0x71b280});
-			std::vector<uint32_t> colors2({0x8bb8ce, 0xf8fa36, 0xc7c7b1, 0xba9f9e, 0x353338});
-			std::vector<uint32_t> colors3({0x490a3d, 0xbd1550, 0xe97f02, 0xf8ca00, 0x8a9b0f});
-
-			add_color_points(lut, min_v, max_v, colors2);
-
-			mapperveld->SetLookupTable(lut);
-
-			vtkSmartPointer<vtkActor> actorveld = vtkActor::New();
-			actorveld->SetMapper(mapperveld);
-
-			//renderer->AddActor(actorveld);
-
-			//
-
-			if(corrected_contours.size() > 1)
-			{
-				vtkSmartPointer<vtkCleanPolyData> filledContours = clip_into_pieces(psi_grid, corrected_contours);
-
-				//
-
-				vtkSmartPointer<vtkLookupTable> lut2 = vtkSmartPointer<vtkLookupTable>::New();
-				lut2->SetNumberOfTableValues(corrected_contours.size() + 1);
-				lut2->Build();
-
-				vtkSmartPointer<vtkPolyDataMapper> contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-				contourMapper->SetInput(filledContours->GetOutput());
-				contourMapper->SetScalarRange(min_v, max_v);
-				contourMapper->SetScalarModeToUseCellData();
-				contourMapper->SetLookupTable(lut2);
-				contourMapper->Update();
-
-				//schaal bar
-				vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
-				scalarBar->SetLookupTable(lut2);
-
-				vtkSmartPointer<vtkActor> contourActor = vtkSmartPointer<vtkActor>::New();
-				contourActor->SetMapper(contourMapper);
-				contourActor->GetProperty()->SetInterpolationToFlat();
-
-				vtkSmartPointer<vtkContourFilter> contours3 = vtkSmartPointer<vtkContourFilter>::New();
-				contours3->SetInput(filledContours->GetOutput());
-				contours3->GenerateValues(corrected_contours.size(), min_v, max_v);
-
-				vtkSmartPointer<vtkPolyDataMapper> contourLineMapperer = vtkSmartPointer<vtkPolyDataMapper>::New();
-				contourLineMapperer->SetInput(contours3->GetOutput());
-				contourLineMapperer->SetScalarRange(min_v, max_v);
-				contourLineMapperer->ScalarVisibilityOff();
-
-				vtkSmartPointer<vtkActor> contourLineActor = vtkSmartPointer<vtkActor>::New();
-				contourLineActor->SetMapper(contourLineMapperer);
-				contourLineActor->GetProperty()->SetLineWidth(2);
-
-
-				renderer->AddActor(contourActor);
-				renderer->AddActor(contourLineActor);
-			}
-
-			vtkSmartPointer<vtkActor> axes = axis(psi_grid, renderer);
-			renderer->AddActor(axes);
-
-			axes_drawed = true;
-		}
-
-		if(one_is_zero(phi_bins))
-		{
-			vtkSmartPointer<vtkStructuredGrid> phi_grid = construct_phi_grid();
-
-			vtkSmartPointer<vtkDataSetMapper> mapperveld = vtkDataSetMapper::New();
-			mapperveld->SetInput(phi_grid);
-
-			double min_v = 0.0;
-			double max_v = 0.0;
-
-			std::vector<double> corrected_contours = this->contour_locations;
-
-			get_data_range(min_v, max_v, corrected_contours, phi_grid);
-
-			//
-
-			vtkSmartPointer<vtkColorTransferFunction> lut = vtkColorTransferFunction::New();
-
-			std::vector<uint32_t> colors({0x134e5e, 0x71b280});
-			std::vector<uint32_t> colors2({0x8bb8ce, 0xf8fa36, 0xc7c7b1, 0xba9f9e, 0x353338});
-			std::vector<uint32_t> colors3({0x490a3d, 0xbd1550, 0xe97f02, 0xf8ca00, 0x8a9b0f});
-
-			add_color_points(lut, min_v, max_v, colors2);
-
-			mapperveld->SetLookupTable(lut);
-
-			vtkSmartPointer<vtkActor> actorveld = vtkActor::New();
-			actorveld->SetMapper(mapperveld);
-
-			//renderer->AddActor(actorveld);
-
-			//
-
-			if(corrected_contours.size() > 1)
-			{
-				vtkSmartPointer<vtkCleanPolyData> filledContours = clip_into_pieces(phi_grid, corrected_contours);
-
-				//
-
-				vtkSmartPointer<vtkLookupTable> lut2 = vtkSmartPointer<vtkLookupTable>::New();
-				lut2->SetNumberOfTableValues(corrected_contours.size() + 1);
-				lut2->Build();
-
-				vtkSmartPointer<vtkPolyDataMapper> contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-				contourMapper->SetInput(filledContours->GetOutput());
-				contourMapper->SetScalarRange(min_v, max_v);
-				contourMapper->SetScalarModeToUseCellData();
-				contourMapper->SetLookupTable(lut2);
-				contourMapper->Update();
-
-				//schaal bar
-				vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
-				scalarBar->SetLookupTable(lut2);
-
-				vtkSmartPointer<vtkActor> contourActor = vtkSmartPointer<vtkActor>::New();
-				contourActor->SetMapper(contourMapper);
-				contourActor->GetProperty()->SetInterpolationToFlat();
-
-				vtkSmartPointer<vtkContourFilter> contours3 = vtkSmartPointer<vtkContourFilter>::New();
-				contours3->SetInput(filledContours->GetOutput());
-				contours3->GenerateValues(corrected_contours.size(), min_v, max_v);
-
-				vtkSmartPointer<vtkPolyDataMapper> contourLineMapperer = vtkSmartPointer<vtkPolyDataMapper>::New();
-				contourLineMapperer->SetInput(contours3->GetOutput());
-				contourLineMapperer->SetScalarRange(min_v, max_v);
-				contourLineMapperer->ScalarVisibilityOff();
-
-				vtkSmartPointer<vtkActor> contourLineActor = vtkSmartPointer<vtkActor>::New();
-				contourLineActor->SetMapper(contourLineMapperer);
-				contourLineActor->GetProperty()->SetLineWidth(2);
-				contourLineActor->GetProperty()->SetColor(0, 0.2, 0.5);
-
-				renderer->AddActor(contourLineActor);
-			}
-
-			if(!axes_drawed)
-			{
-				vtkSmartPointer<vtkActor> axes = axis(phi_grid, renderer);
-				renderer->AddActor(axes);
-			}
-		}
-
-		if(one_is_zero(velocity_bins))
-		{
-			vtkSmartPointer<vtkStructuredGrid> velocity_grid = construct_velocity_grid();
-
-			if(this->arrow_scale > 0.0)
-			{
-				vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
-
-				vtkSmartPointer<vtkGlyph3D> glyph3D = vtkSmartPointer<vtkGlyph3D>::New();
-				glyph3D->SetSourceConnection(arrowSource->GetOutputPort());
-				//glyph3D->SetVectorModeToUseVector();
-#if VTK_MAJOR_VERSION <= 5
-				glyph3D->SetInput(velocity_grid);
-#else
-				glyph3D->SetInputData(input);
+			axes->DrawXGridlinesOff();
+			axes->DrawYGridlinesOff();
+			axes->DrawZGridlinesOff();
+			axes->ZAxisLabelVisibilityOff();
+#if VTK_MAJOR_VERSION > 5
+			axes->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
 #endif
+			axes->XAxisMinorTickVisibilityOff();
+			axes->YAxisMinorTickVisibilityOff();
+			axes->ZAxisMinorTickVisibilityOff();
 
-				glyph3D->SetColorMode(2);
-				//glyph3D->SetScaleModeToScaleByVector();
-				//glyph3D->OrientOff();
-				glyph3D->SetScaleFactor(this->arrow_scale);
-				glyph3D->Update();
+			axes->GetProperty()->SetColor(0, 0, 0);
 
-				vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-				mapper->SetInputConnection(glyph3D->GetOutputPort());
+			/// VTK wilt dit niet verschuiven, zodat de cijfers op de assen niet overlappen.
+			axes->SetXTitle("");
+			axes->SetYTitle("");
+			axes->SetCamera(renderer->GetActiveCamera());
 
-				vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-				actor->SetMapper(mapper);
-				actor->GetProperty()->SetRepresentationToSurface();
+			renderer->AddActor(axes);
+		}
 
-				renderer->AddActor(actor);
-			}
+		if(one_is_zero(this->psi_field.bins))
+		{
+			visualize_scalar_field(this->psi_field, construct_psi_grid(), renderer);
+		}
 
-			if(this->streamline_resolution > 0)
-			{
-				vtkSmartPointer<vtkLineSource> seeds = vtkSmartPointer<vtkLineSource>::New();
-				seeds->SetResolution(this->streamline_resolution);
-				seeds->SetPoint1(min_range.x, max_range.y, 0);
-				seeds->SetPoint2(min_range.x, min_range.y, 0);
+		if(one_is_zero(this->phi_field.bins))
+		{
+			visualize_scalar_field(this->phi_field, construct_phi_grid(), renderer);
+		}
 
-				// Setting Streamline properties
-				vtkSmartPointer<vtkStreamLine> streamLine = vtkSmartPointer<vtkStreamLine>::New();
-
-				streamLine->SetInput(velocity_grid);
-				streamLine->SetSource(seeds->GetOutput());
-
-				// Integration properties
-
-				streamLine->SetMaximumPropagationTime(200);
-				streamLine->SetIntegrationStepLength(.2);
-				streamLine->SetStepLength(.001);
-				streamLine->SetNumberOfThreads(1);
-				streamLine->SetIntegrationDirectionToForward();
-				//streamLine->VorticityOn();
-
-				// Creating a Mapper and Actor
-
-				vtkSmartPointer<vtkPolyDataMapper> streamLineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-				streamLineMapper->SetInputConnection(streamLine->GetOutputPort());
-
-				vtkSmartPointer<vtkActor> streamLineActor = vtkSmartPointer<vtkActor>::New();
-				streamLineActor->SetMapper(streamLineMapper);
-				streamLineActor->GetProperty()->SetColor(0, 0.2, 0.5);
-				streamLineActor->GetProperty()->SetLineWidth(3);
-				streamLineActor->VisibilityOn();
-
-				renderer->AddActor(streamLineActor);
-			}
-
-			if(!axes_drawed)
-			{
-				vtkSmartPointer<vtkActor> axes = axis(velocity_grid, renderer);
-				renderer->AddActor(axes);
-			}
+		if(one_is_zero(this->v_field.bins))
+		{
+			visualize_vector_field(this->v_field, construct_velocity_grid(), renderer);
 		}
 
 		if(this->airfoil)
 		{
 			renderer->AddActor(geef_actor_lijnen(this->airfoil->get_lines()));
+			renderer->AddActor(geef_actor_punten(this->airfoil->get_points()));
 		}
 
 		renderer->ResetCamera();
 
-		vtkSmartPointer<vtkInteractorStyle> style;
-
-		bool draw_to_file = false;
-
-		if(draw_to_file)
-		{
-			style = vtkSmartPointer<vtkInteractorStyleImage>::New();
-		}
-		else
-		{
-			style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
-		}
-
+		vtkSmartPointer<vtkInteractorStyleImage> style = vtkSmartPointer<vtkInteractorStyleImage>::New();
 		vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
 
 		iren->SetInteractorStyle(style);
@@ -575,71 +487,10 @@ void visualization_vtk_c::draw_ivo(const std::string & filename)
 
 		iren->Initialize();
 		renWin->Render();
-
-		if(!draw_to_file)
-		{
-			iren->Start();
-		}
-
-		if(draw_to_file)
-		{
-			print_image(renWin, "test.png");
-		}
+		iren->Start();
 
 		iren->TerminateApp();
 	}
-}
-
-void visualization_vtk_c::set_color_scaling(const std::vector<uint32_t> & scaling)
-{
-	//
-}
-
-void visualization_vtk_c::set_automatic_color_scaling(uint32_t levels)
-{
-	//
-}
-
-void visualization_vtk_c::draw(const std::string & filename)
-{
-	//
-
-
-	//return;
-
-	std::cout << "hier" << std::endl;
-
-	std::vector<double> psi_pot_vec;
-
-	vtkSmartPointer<vtkPlaneSource> psi_plane = construct_psi_plane();
-
-	double psiRange[2];
-	psi_plane->GetOutput()->GetPointData()->GetScalars()->GetRange(psiRange);
-
-	double delta_psi = std::abs((psiRange[1] - psiRange[0]) / (20));
-
-	//std::cout << phiRange[0] << ", " << phiRange[1] << std::endl;
-	for(int i = 0; i < 10; ++i)
-	{
-		psi_pot_vec.push_back(psiRange[0] + (delta_psi * i)) ;
-		//std::cout << contvec_psi[i] << std::endl;
-	}
-
-	std::cout << "hier" << std::endl;
-	//contour_plot(phi_plane, 20);//contvec_phi);
-	contour_plot(psi_plane, psi_pot_vec);//contvec_psi);
-
-
-
-	streamlines_plot(construct_velocity_grid(), 20);
-
-	arrow_plot();
-
-
-
-
-	return;
-
 }
 
 vtkSmartPointer<vtkPoints> visualization_vtk_c::construct_points(const vector_2d_c & binning) const
@@ -712,8 +563,8 @@ vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::combine_grid(const vecto
 
 vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_psi_grid() const
 {
-	vtkSmartPointer<vtkPoints> points = construct_points(psi_bins);
-	vtkSmartPointer<vtkDoubleArray> field = construct_field(psi_bins, true);
+	vtkSmartPointer<vtkPoints> points = construct_points(this->psi_field.bins);
+	vtkSmartPointer<vtkDoubleArray> field = construct_field(this->psi_field.bins, true);
 
 	for(int i = 0; i < points->GetNumberOfPoints(); i++)
 	{
@@ -723,16 +574,16 @@ vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_psi_grid() con
 
 		const vector_2d_c pos(x[0], x[1]);
 
-		field->InsertNextValue(clip_value(flow->get_psi(pos)));
+		field->InsertNextValue(flow->get_psi(pos));
 	}
 
-	return combine_grid(psi_bins, points, field);
+	return combine_grid(this->psi_field.bins, points, field);
 }
 
 vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_phi_grid() const
 {
-	vtkSmartPointer<vtkPoints> points = construct_points(phi_bins);
-	vtkSmartPointer<vtkDoubleArray> field = construct_field(phi_bins, true);
+	vtkSmartPointer<vtkPoints> points = construct_points(this->phi_field.bins);
+	vtkSmartPointer<vtkDoubleArray> field = construct_field(this->phi_field.bins, true);
 
 	for(int i = 0; i < points->GetNumberOfPoints(); i++)
 	{
@@ -742,19 +593,17 @@ vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_phi_grid() con
 
 		const vector_2d_c pos(x[0], x[1]);
 
-		double t = clip_value(flow->get_phi(pos));
-
-		//field->InsertNextTuple1(t);
-		field->InsertNextValue(t);
+		field->InsertNextValue(flow->get_phi(pos))
+		;
 	}
 
-	return combine_grid(phi_bins, points, field);
+	return combine_grid(this->phi_field.bins, points, field);
 }
 
 vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_velocity_grid() const
 {
-	vtkSmartPointer<vtkPoints> points = construct_points(velocity_bins);
-	vtkSmartPointer<vtkDoubleArray> field = construct_field(velocity_bins, false);
+	vtkSmartPointer<vtkPoints> points = construct_points(this->v_field.bins);
+	vtkSmartPointer<vtkDoubleArray> field = construct_field(this->v_field.bins, false);
 
 	for(int i = 0; i < points->GetNumberOfPoints(); i++)
 	{
@@ -774,263 +623,7 @@ vtkSmartPointer<vtkStructuredGrid> visualization_vtk_c::construct_velocity_grid(
 		field->InsertNextTuple(v);
 	}
 
-	return combine_grid(velocity_bins, points, field);
-}
-
-vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_phi_plane() const
-{
-	vtkSmartPointer<vtkPlaneSource> plane = vtkSmartPointer<vtkPlaneSource>::New();
-
-	plane->SetXResolution(round_abs(phi_bins.x));
-	plane->SetYResolution(round_abs(phi_bins.y));
-	plane->SetOrigin(min_range.x, min_range.y, 0);
-	plane->SetPoint1(max_range.x, min_range.y, 0);
-	plane->SetPoint2(min_range.x, max_range.y, 0);
-	plane->Update();
-	vtkSmartPointer<vtkDoubleArray> field = vtkSmartPointer<vtkDoubleArray>::New();
-	vtkSmartPointer<vtkPoints> points = plane->GetOutput()->GetPoints();
-
-	double icout = points->GetNumberOfPoints() * 0.01;
-
-
-	for(int i = 0; i < points->GetNumberOfPoints(); i++)
-	{
-		double x[3];
-
-		points->GetPoint(i, x);
-
-		const vector_2d_c pos(x[0], x[1]);
-
-		double t = clip_value(flow->get_phi(pos));
-
-		if(i > icout)
-		{
-			std::cout << i << ": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
-			icout = icout + (points->GetNumberOfPoints() / 100);
-		}
-
-		/*if (i > icout)
-		{
-			std::cout << i <<": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
-			icout = icout + (points->GetNumberOfPoints()/100);
-		}*/
-		/*if(t > vtkMax)
-		{
-			t = vtkMax;
-		}
-
-		if(t < -vtkMax)
-		{
-			t = -vtkMax;
-		}*/
-
-		//std::cout << t << std::endl;
-		//field->InsertNextTuple1(t);
-		field->InsertNextValue(t);
-	}
-
-	plane->GetOutput()->GetPointData()->SetScalars(field);
-	return plane;
-}
-
-vtkSmartPointer<vtkPlaneSource> visualization_vtk_c::construct_psi_plane() const
-{
-	vtkSmartPointer<vtkPlaneSource> plane = vtkSmartPointer<vtkPlaneSource>::New();
-
-	plane->SetXResolution(round_abs(psi_bins.x));
-	plane->SetYResolution(round_abs(psi_bins.y));
-	plane->SetOrigin(min_range.x, min_range.y, 0);
-	plane->SetPoint1(max_range.x, min_range.y, 0);
-	plane->SetPoint2(min_range.x, max_range.y, 0);
-	plane->Update();
-	vtkSmartPointer<vtkDoubleArray> field = vtkSmartPointer<vtkDoubleArray>::New();
-	vtkSmartPointer<vtkPoints> points = plane->GetOutput()->GetPoints();
-
-	double icout = points->GetNumberOfPoints() * 0.01;
-
-	for(int i = 0; i < points->GetNumberOfPoints(); i++)
-	{
-		double x[3];
-
-		points->GetPoint(i, x);
-
-		const vector_2d_c pos(x[0], x[1]);
-
-
-		double t = clip_value(flow->get_psi(pos));
-		//std::cout <<  i <<": " << pos.x << ", " << pos.y << "// ->" << t << std::endl;
-
-
-		if(i > icout)
-		{
-			std::cout << i << ": " << pos.x << ", " << pos.y << "// ->" << t <<  std::endl;
-			icout = icout + (points->GetNumberOfPoints() * 0.01);
-		}
-
-		/*if(t > vtkMax)
-		{
-			t = vtkMax;
-		}
-
-		if(t < -vtkMax)
-		{
-			t = -vtkMax;
-		}*/
-
-		//std::cout << t << std::endl;
-		//field->InsertNextTuple1(t);
-		field->InsertNextValue(t);
-	}
-
-	plane->GetOutput()->GetPointData()->SetScalars(field);
-	return plane;
-}
-
-
-void visualization_vtk_c::contour_plot(vtkSmartPointer<vtkPlaneSource> plane, std::vector<double> contlvls) const //int ncont
-{
-	std::sort(contlvls.begin(), contlvls.end());
-
-	double scalarRange[2];
-	double planeRange[2];
-	//plane->GetOutput()->GetPointData()->GetScalars()->GetRange(scalarRange);
-	plane->GetOutput()->GetPointData()->GetScalars()->GetRange(planeRange);
-	scalarRange[0] = contlvls[contlvls.size() - 1];
-	scalarRange[1] = contlvls[0];
-
-	int Nvec = contlvls.size();
-
-	while(contlvls[Nvec - 1] >= planeRange[1] && Nvec > 2)
-	{
-		contlvls.pop_back();
-		Nvec = contlvls.size();
-		std::cout << "removed" << std::endl;
-	}
-
-
-
-	vtkSmartPointer<vtkAppendPolyData> appendFilledContours = vtkSmartPointer<vtkAppendPolyData>::New();
-
-	//int numberOfContours = ncont;
-	int numberOfContours = contlvls.size();
-	contlvls.push_back(planeRange[1] + 0.5);
-
-	//double delta = (scalarRange[1] - scalarRange[0]) / static_cast<double>(numberOfContours - 1);
-
-	// Keep the clippers alive
-	std::vector<vtkSmartPointer<vtkClipPolyData> > clippersLo;
-	std::vector<vtkSmartPointer<vtkClipPolyData> > clippersHi;
-
-	for(int i = 0; i < numberOfContours; i++)
-	{
-		//double valueLo = scalarRange[0] + static_cast<double>(i) * delta;
-		double valueLo = contlvls[i];
-		//double valueHi = scalarRange[0] + static_cast<double>(i + 1) * delta;
-		double valueHi = contlvls[i + 1];
-		clippersLo.push_back(vtkSmartPointer<vtkClipPolyData>::New());
-		clippersLo[i]->SetValue(valueLo);
-
-		if(i == 0)
-		{
-			clippersLo[i]->SetInputConnection(plane->GetOutputPort());
-		}
-		else
-		{
-			clippersLo[i]->SetInputConnection(clippersHi[i - 1]->GetOutputPort(1));
-		}
-
-		clippersLo[i]->InsideOutOff();
-		clippersLo[i]->Update();
-
-		clippersHi.push_back(vtkSmartPointer<vtkClipPolyData>::New());
-		clippersHi[i]->SetValue(valueHi);
-		clippersHi[i]->SetInputConnection(clippersLo[i]->GetOutputPort());
-		clippersHi[i]->GenerateClippedOutputOn();
-		clippersHi[i]->InsideOutOn();
-		clippersHi[i]->Update();
-
-		if(clippersHi[i]->GetOutput()->GetNumberOfCells() == 0)
-		{
-			std::cout << "Empty clip" << std::endl;
-			continue;
-		}
-
-		vtkSmartPointer<vtkFloatArray> cd = vtkSmartPointer<vtkFloatArray>::New();
-		cd->SetNumberOfComponents(1);
-		cd->SetNumberOfTuples(clippersHi[i]->GetOutput()->GetNumberOfCells());
-		cd->FillComponent(0, valueLo);
-
-		clippersHi[i]->GetOutput()->GetCellData()->SetScalars(cd);
-		appendFilledContours->AddInputConnection(clippersHi[i]->GetOutputPort());
-
-		std::cout << "Clip" << std::endl;
-	}
-
-	vtkSmartPointer<vtkCleanPolyData> filledContours = vtkSmartPointer<vtkCleanPolyData>::New();
-	filledContours->SetInputConnection(appendFilledContours->GetOutputPort());
-
-	vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-	lut->SetNumberOfTableValues(numberOfContours + 1);
-	lut->Build();
-	vtkSmartPointer<vtkPolyDataMapper> contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	contourMapper->SetInputConnection(filledContours->GetOutputPort());
-	contourMapper->SetScalarRange(planeRange[0], planeRange[1]);
-	contourMapper->SetScalarModeToUseCellData();
-	contourMapper->SetLookupTable(lut);
-
-	//schaal bar
-	vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
-	scalarBar->SetLookupTable(lut);
-	//scalarBar->GetLabelTextProperty()->SetColor(0,0,0); //werkt blijkbaar niet
-
-	vtkSmartPointer<vtkActor> contourActor = vtkSmartPointer<vtkActor>::New();
-	contourActor->SetMapper(contourMapper);
-	contourActor->GetProperty()->SetInterpolationToFlat();
-
-	vtkSmartPointer<vtkContourFilter> contours = vtkSmartPointer<vtkContourFilter>::New();
-	contours->SetInputConnection(filledContours->GetOutputPort());
-
-	//contours->GenerateValues(numberOfContours, scalarRange[0], scalarRange[1]);
-	for(int i = 0; i < numberOfContours; i++)
-	{
-		contours->SetValue(i, contlvls[i]);
-	}
-
-	vtkSmartPointer<vtkPolyDataMapper> contourLineMapperer = vtkSmartPointer<vtkPolyDataMapper>::New();
-	contourLineMapperer->SetInputConnection(contours->GetOutputPort());
-	contourLineMapperer->SetScalarRange(scalarRange[0], scalarRange[1]);
-	contourLineMapperer->ScalarVisibilityOff();
-
-	vtkSmartPointer<vtkActor> contourLineActor = vtkSmartPointer<vtkActor>::New();
-	contourLineActor->SetMapper(contourLineMapperer);
-	contourLineActor->GetProperty()->SetLineWidth(2);
-
-	// The usual renderer, render window and interactor
-	vtkSmartPointer<vtkRenderer> ren1 = vtkSmartPointer<vtkRenderer>::New();
-	vtkSmartPointer<vtkRenderWindow> renWin = vtkSmartPointer<vtkRenderWindow>::New();
-	vtkSmartPointer<vtkRenderWindowInteractor>
-	iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-
-	ren1->SetBackground(1, 1, 1);
-	renWin->AddRenderer(ren1);
-	iren->SetRenderWindow(renWin);
-
-	// assen
-	vtkSmartPointer<vtkCubeAxesActor> assen = axis(plane, ren1);
-	assen->GetProperty()->SetColor(0, 0, 0);
-	assen->SetXTitle("x");
-	assen->SetYTitle("y");
-
-	// Add the actors
-	ren1->AddActor2D(scalarBar);
-	ren1->AddActor(contourActor);
-	ren1->AddActor(contourLineActor);
-	ren1->AddActor(assen);
-	ren1->ResetCamera();
-
-	// Begin interaction
-	renWin->Render();
-	iren->Start();
+	return combine_grid(this->v_field.bins, points, field);
 }
 
 vtkSmartPointer<vtkActor> visualization_vtk_c::separating_streamlines(vtkSmartPointer<vtkPlaneSource> plane) const
@@ -1059,7 +652,6 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::separating_streamlines(vtkSmartPo
 	vtkSmartPointer<vtkActor> contourLineActor = vtkSmartPointer<vtkActor>::New();
 	contourLineActor->SetMapper(contourLineMapperer);
 	contourLineActor->GetProperty()->SetLineWidth(2);
-	//contourLineActor->GetProperty()->SetLineWidth(2);
 
 	return contourLineActor;
 
@@ -1180,240 +772,6 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_punten(std::vector<wif
 	actorpunt->GetProperty()->SetPointSize(5);
 
 	return actorpunt;
-}
-void visualization_vtk_c::arrow_plot() const
-{
-	vtkSmartPointer<vtkStructuredGrid> velocity_grid = construct_velocity_grid();
-
-	vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
-
-	vtkSmartPointer<vtkGlyph3D> glyph3D = vtkSmartPointer<vtkGlyph3D>::New();
-	glyph3D->SetSourceConnection(arrowSource->GetOutputPort());
-	//glyph3D->SetVectorModeToUseVector();
-#if VTK_MAJOR_VERSION <= 5
-	glyph3D->SetInput(velocity_grid);
-#else
-	glyph3D->SetInputData(input);
-#endif
-
-	glyph3D->SetColorMode(2);
-	//glyph3D->SetScaleModeToScaleByVector();
-	//glyph3D->OrientOff();
-	glyph3D->SetScaleFactor(.05);
-	glyph3D->Update();
-
-	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-	renderer->SetBackground(1, 1, 1);
-
-	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	mapper->SetInputConnection(glyph3D->GetOutputPort());
-
-	vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-	actor->SetMapper(mapper);
-	actor->GetProperty()->SetRepresentationToSurface();
-
-	vtkSmartPointer<vtkActor> superquadricActor = vtkSmartPointer<vtkActor>::New();
-	superquadricActor->SetMapper(mapper);
-	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = axis(glyph3D, renderer);
-
-	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
-	cubeAxesActor->SetXTitle("x");
-	cubeAxesActor->SetYTitle("y");
-
-	/*renderer->AddActor(actor);
-	renderer->AddActor(cubeAxesActor );
-	renderer->ResetCamera();*/
-
-	renderer->AddActor(cubeAxesActor);
-	renderer->AddActor(superquadricActor);
-	renderer->ResetCamera();
-
-	//renderer->GetActiveCamera()->Azimuth(0);
-	//renderer->GetActiveCamera()->Elevation(0);
-
-	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-	renderWindow->AddRenderer(renderer);
-
-	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	renderWindowInteractor->SetRenderWindow(renderWindow);
-
-	vtkSmartPointer<vtkInteractorStyleImage> imageStyle = vtkSmartPointer<vtkInteractorStyleImage>::New();
-	renderWindow->GetInteractor()->SetInteractorStyle(imageStyle);
-
-	renderWindow->Render();
-	//
-
-	renderWindowInteractor->Start();
-}
-
-void visualization_vtk_c::streamlines_plot(vtkSmartPointer<vtkStructuredGrid> sgrid, uint32_t number_of_streamlines) const
-{
-	// Source of the streamlines
-
-	vtkSmartPointer<vtkLineSource> seeds = vtkSmartPointer<vtkLineSource>::New();
-	seeds->SetResolution(number_of_streamlines);
-	seeds->SetPoint1(min_range.x, max_range.y, 0);
-	seeds->SetPoint2(min_range.x, min_range.y, 0);
-
-	// Setting Streamline properties
-	vtkSmartPointer<vtkStreamLine> streamLine = vtkSmartPointer<vtkStreamLine>::New();
-
-	streamLine->SetInput(sgrid);
-	streamLine->SetSource(seeds->GetOutput());
-
-	// Integration properties
-
-	streamLine->SetMaximumPropagationTime(200);
-	streamLine->SetIntegrationStepLength(.2);
-	streamLine->SetStepLength(.001);
-	streamLine->SetNumberOfThreads(1);
-	streamLine->SetIntegrationDirectionToForward();
-	//streamLine->VorticityOn();
-
-	// Creating a Mapper and Actor
-
-	vtkSmartPointer<vtkPolyDataMapper> streamLineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-	streamLineMapper->SetInputConnection(streamLine->GetOutputPort());
-
-	vtkSmartPointer<vtkActor> streamLineActor = vtkSmartPointer<vtkActor>::New();
-	streamLineActor->SetMapper(streamLineMapper);
-	streamLineActor->GetProperty()->SetColor(0, 0.2, 0.5);
-	streamLineActor->GetProperty()->SetLineWidth(3);
-	streamLineActor->VisibilityOn();
-
-	//return streamLineActor;
-
-	vtkSmartPointer<vtkRenderer> renderer24 = vtkSmartPointer<vtkRenderer>::New();
-	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-	renderWindow->AddRenderer(renderer24);
-
-	vtkSmartPointer<vtkRenderWindowInteractor> interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	interactor->SetRenderWindow(renderWindow);
-
-	vtkSmartPointer<vtkInteractorStyleTrackballCamera> style = vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New();
-	interactor->SetInteractorStyle(style);
-
-
-
-	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
-	cubeAxesActor->SetBounds(min_range.x, max_range.x, min_range.y, max_range.y, 0, 0);
-	cubeAxesActor->SetCamera(renderer24->GetActiveCamera());
-
-	cubeAxesActor->DrawXGridlinesOff();
-	cubeAxesActor->DrawYGridlinesOff();
-	cubeAxesActor->DrawZGridlinesOff();
-	cubeAxesActor->ZAxisLabelVisibilityOff();
-#if VTK_MAJOR_VERSION > 5
-	cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
-#endif
-
-	cubeAxesActor->XAxisMinorTickVisibilityOff();
-	cubeAxesActor->YAxisMinorTickVisibilityOff();
-	cubeAxesActor->ZAxisMinorTickVisibilityOff();
-
-	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
-	cubeAxesActor->SetXTitle("x");
-	cubeAxesActor->SetYTitle("y");
-	cubeAxesActor->SetCamera(renderer24->GetActiveCamera());
-
-	renderer24->AddActor(streamLineActor);
-	renderer24->AddActor(cubeAxesActor);
-	renderer24->ResetCamera();
-
-	// Add the actors to the renderer, set the background and size
-	renderer24->SetBackground(1, 1, 1);
-	renderWindow->SetSize(300, 300);
-	interactor->Initialize();
-	std::cout << "test3" << std::endl;
-	renderWindow->Render();
-
-	interactor->Start();
-}
-
-vtkSmartPointer<vtkCubeAxesActor> visualization_vtk_c::axis(vtkSmartPointer<vtkPlaneSource> object, vtkSmartPointer<vtkRenderer> renderer) const
-{
-	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
-	cubeAxesActor->SetBounds(object->GetOutput()->GetBounds());
-	cubeAxesActor->SetCamera(renderer->GetActiveCamera());
-
-	cubeAxesActor->DrawXGridlinesOff();
-	cubeAxesActor->DrawYGridlinesOff();
-	cubeAxesActor->DrawZGridlinesOff();
-	cubeAxesActor->ZAxisLabelVisibilityOff();
-#if VTK_MAJOR_VERSION > 5
-	cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
-#endif
-
-	cubeAxesActor->XAxisMinorTickVisibilityOff();
-	cubeAxesActor->YAxisMinorTickVisibilityOff();
-	cubeAxesActor->ZAxisMinorTickVisibilityOff();
-	return cubeAxesActor;
-}
-
-vtkSmartPointer<vtkCubeAxesActor> visualization_vtk_c::axis(vtkSmartPointer<vtkGlyph3D> object, vtkSmartPointer<vtkRenderer> renderer) const
-{
-	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
-	cubeAxesActor->SetBounds(object->GetOutput()->GetBounds());
-	cubeAxesActor->SetCamera(renderer->GetActiveCamera());
-
-	cubeAxesActor->DrawXGridlinesOff();
-	cubeAxesActor->DrawYGridlinesOff();
-	cubeAxesActor->DrawZGridlinesOff();
-	cubeAxesActor->ZAxisLabelVisibilityOff();
-#if VTK_MAJOR_VERSION > 5
-	cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
-#endif
-
-	cubeAxesActor->XAxisMinorTickVisibilityOff();
-	cubeAxesActor->YAxisMinorTickVisibilityOff();
-	cubeAxesActor->ZAxisMinorTickVisibilityOff();
-
-	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
-	cubeAxesActor->SetXTitle("x");
-	cubeAxesActor->SetYTitle("y");
-	cubeAxesActor->SetCamera(renderer->GetActiveCamera());
-
-	return cubeAxesActor;
-}
-
-vtkSmartPointer<vtkCubeAxesActor> visualization_vtk_c::axis(vtkSmartPointer<vtkStructuredGrid> object, vtkSmartPointer<vtkRenderer> renderer) const
-{
-	vtkSmartPointer<vtkCubeAxesActor> cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
-	cubeAxesActor->SetBounds(object->GetBounds());
-
-	cubeAxesActor->DrawXGridlinesOff();
-	cubeAxesActor->DrawYGridlinesOff();
-	cubeAxesActor->DrawZGridlinesOff();
-	cubeAxesActor->ZAxisLabelVisibilityOff();
-#if VTK_MAJOR_VERSION > 5
-	cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
-#endif
-
-	cubeAxesActor->XAxisMinorTickVisibilityOff();
-	cubeAxesActor->YAxisMinorTickVisibilityOff();
-	cubeAxesActor->ZAxisMinorTickVisibilityOff();
-
-	cubeAxesActor->GetProperty()->SetColor(0, 0, 0);
-	cubeAxesActor->SetXTitle("x");
-	cubeAxesActor->SetYTitle("y");
-	cubeAxesActor->SetCamera(renderer->GetActiveCamera());
-
-	return cubeAxesActor;
-}
-
-void visualization_vtk_c::print_image(vtkSmartPointer<vtkRenderWindow> renderWindow, const char * filename) const
-{
-	vtkSmartPointer<vtkWindowToImageFilter> windowToImageFilter = vtkSmartPointer<vtkWindowToImageFilter>::New();
-	windowToImageFilter->SetInput(renderWindow);
-	windowToImageFilter->SetMagnification(1); //set the resolution of the output image (3 times the current resolution of vtk render window)
-	windowToImageFilter->SetInputBufferTypeToRGBA(); //also record the alpha (transparency) channel
-	windowToImageFilter->ReadFrontBufferOff(); // read from the back buffer
-	windowToImageFilter->Update();
-
-	vtkSmartPointer<vtkPNGWriter> writer = vtkSmartPointer<vtkPNGWriter>::New();
-	writer->SetInputConnection(windowToImageFilter->GetOutputPort());
-	writer->SetFileName(filename);
-	writer->Write();
 }
 
 } // namespace wif_viz

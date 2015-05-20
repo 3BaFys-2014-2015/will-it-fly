@@ -17,7 +17,7 @@ void print_all_fields(const std::string & name, std::shared_ptr<wif_core::flow_c
 	vizy->set_phi_bins(binning);
 	vizy->set_velocity_bins(binning);
 
-	vizy->draw_ivo(name);
+	vizy->draw(name);
 }
 
 void print_psi(const std::string        &        name,
@@ -27,10 +27,9 @@ void print_psi(const std::string        &        name,
                const wif_core::vector_2d_c   &   binning)
 {
 	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-	vizy->set_clip_range(-0.1, 0.1);
 	vizy->set_psi_bins(binning);
 
-	vizy->draw_ivo("");
+	vizy->draw("");
 }
 
 //
@@ -48,10 +47,8 @@ void print_phi(const std::string        &        name,
                const wif_core::vector_2d_c   &   binning)
 {
 	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-	vizy->set_clip_range(-0.1, 0.1);
-	vizy->set_phi_bins(binning);
 
-	vizy->draw_ivo("");
+	vizy->draw("");
 }
 
 
@@ -66,7 +63,7 @@ void print_velocity(const std::string        &        name,
 	vizy->set_velocity_bins(binning);
 
 
-	vizy->draw_ivo("");
+	vizy->draw("");
 }
 
 
@@ -109,28 +106,34 @@ void test_airfoil(wif_core::airfoil_c & foil)
 
 	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180, 1.0);
 
-	auto result = wif_algo::calculate_flow(circle, flow, false, 0.0);
+	auto result = wif_algo::calculate_flow(circle, flow, false, 1.0);
 
 	//std::shared_ptr<wif_core::flow_accumulate_c> flowacc = std::make_shared<wif_core::flow_accumulate_c>(flow);
 	//flowacc->add_source_sheet(line, 1.0)
 
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-		vizy->set_psi_bins({101, 101});
-		vizy->set_phi_bins({101, 101});
-		vizy->set_contours(20);
+		vizy->get_psi_field().bins = {201, 201};
+		vizy->get_psi_field().style = (wif_viz::E_SCALAR_DRAW_STYLE)(wif_viz::ESDS_GRADIENT | wif_viz::ESDS_CONTOURS);
+		vizy->get_phi_field().bins = {201, 201};
+		vizy->get_phi_field().style = wif_viz::ESDS_CONTOURS;
+
 		vizy->set_airfoil(&circle);
 
-		vizy->draw_ivo("");
+		vizy->draw("");
 	}
 
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-		vizy->set_velocity_bins({101, 101});
-		vizy->set_streamline_resolution(100);
+		vizy->get_v_field().bins = {101, 101};
+		vizy->get_v_field().style = wif_viz::EVDS_STREAMLINES;
+		vizy->get_v_field().streamline_resolution = 11;
+		vizy->get_v_field().streamline_seeds = { -0.5, 1.0, -0.5, -1.0};
+
 		vizy->set_airfoil(&circle);
 
-		vizy->draw_ivo("");
+		vizy->draw("41584864");
+		std::cout << "DFSDF" << std::endl;
 	}
 }
 
@@ -147,14 +150,14 @@ void test_uniflow(bool screen)
 		vizy->set_psi_bins({101, 101});
 		vizy->set_contours(20);
 
-		vizy->draw_ivo("");
+		vizy->draw("");
 	}
 
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, { -1, -1}, {1, 1});
 		vizy->set_phi_bins({101, 101});
 
-		vizy->draw_ivo("");
+		vizy->draw("");
 	}
 
 	//visualize_all(screen, "test-uniflow", flow, { -2, -2}, {2, 2}, {31, 31});
@@ -211,7 +214,6 @@ void test_source(bool screen)
 	{
 		auto viz = create_visualization_vtk(source_sink, min, max);
 
-		viz->set_clip_range(-0.1, 0.1);
 		viz->set_psi_bins({100, 100});
 		viz->draw();
 	}
@@ -219,7 +221,6 @@ void test_source(bool screen)
 	{
 		auto viz = create_visualization_vtk(source_sink, min, max);
 
-		viz->set_clip_range(-1.0, 1.0);
 		viz->set_phi_bins({100, 100});
 		viz->draw();
 	}
@@ -274,13 +275,14 @@ void test_airfoil()
 	//flow->add_source_sheets(std::vector<double>(airfoil.get_lines().size(), 1), airfoil);
 
 	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(f.flow, { -2, -3}, {2, 3});
-	//vizy->set_clip_range(-1, 1);
+
+	vizy->get_psi_field().bins = {101, 101};
+
 	vizy->set_velocity_bins({51, 51});
 	vizy->set_airfoil(&n_airfoil);
 	vizy->set_contours(200);
-	vizy->set_streamline_resolution(200);
 
-	vizy->draw_ivo("");
+	vizy->draw("gdgdfg");
 
 	//visualize_all(screen, "test-circle", flow, { -2, -2}, {2, 2}, {101, 101});
 }

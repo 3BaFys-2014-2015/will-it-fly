@@ -18,6 +18,8 @@ public:
 
 	vector_2d_c(const vector_2d_c & other);
 
+	bool operator==(const vector_2d_c & other) const;
+
 	vector_2d_c & operator=(const vector_2d_c & other);
 
 	vector_2d_c operator+(const vector_2d_c & other) const;

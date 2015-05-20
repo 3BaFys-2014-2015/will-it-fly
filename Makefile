@@ -101,6 +101,8 @@ wifalgo : wif_core
 	cat ./wif_algo/install_headers.txt | xargs -I % chmod 755 ./build/include/wif_algo/%
 	$(MAKE) -C ./wif_algo algo
 
+wif_viz : wifviz
+
 wifviz : wif_core
 	mkdir -p ./build/obj/wif_viz
 	mkdir -p ./build/include/wif_viz

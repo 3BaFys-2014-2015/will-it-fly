@@ -3,15 +3,89 @@
 
 #include <memory>
 #include <wif_core/wif_core.hpp>
-
+#include <iostream>
 
 namespace wif_viz
 {
 
+using namespace wif_core;
 
-using wif_core::vector_2d_c;
-using wif_core::flow_c;
+enum E_SCALAR_DRAW_STYLE
+{
+	ESDS_GRADIENT = 0x1,
+	ESDS_DISCRETE = 0x2,
+	ESDS_CONTOURS = 0x4
+};
 
+enum E_VECTOR_DRAW_STYLE
+{
+	EVDS_ARROWS      = 0x1,
+	EVDS_STREAMLINES = 0x2
+};
+
+class global_settings_c
+{
+public:
+	global_settings_c() :
+		output_to_file(false),
+		draw_scale(true),
+		autoguess_stagnation_points(false),
+		stagnation_tolerance(0.001)
+	{
+		//
+	}
+
+	bool output_to_file;
+	bool draw_scale;
+	bool autoguess_stagnation_points;
+	double stagnation_tolerance;
+};
+
+class field_c
+{
+public:
+	field_c() :
+		bins(0, 0)
+	{
+		//
+	}
+
+	vector_2d_c bins;
+};
+
+class scalar_field_c : public field_c
+{
+public:
+	scalar_field_c() :
+		gradient_colors(10),
+		contour_locations(),
+		style(ESDS_GRADIENT)
+	{
+		//
+	}
+
+	uint32_t gradient_colors;
+	std::vector<double> contour_locations;
+	E_SCALAR_DRAW_STYLE style;
+};
+
+class vector_field_c : public field_c
+{
+public:
+	vector_field_c() :
+		arrow_scale(0.1),
+		streamline_seeds(0, 0, 0, 0),
+		streamline_resolution(100),
+		style(EVDS_ARROWS)
+	{
+		//
+	}
+
+	double arrow_scale;
+	line_2d_c streamline_seeds;
+	uint32_t streamline_resolution;
+	E_VECTOR_DRAW_STYLE style;
+};
 
 class visualization_c
 {
@@ -46,46 +120,38 @@ public:
 	 * Als de filename == "", print naar het scherm, anders naar het
 	 * bestand dat gegeven is door filename.c_str()
 	 */
-	//virtual void set_velocityarrows(const vector_2d_c & bins) = 0;
 
 	void set_contours(const std::vector<double> & contours);
 	void set_contours(uint32_t contours);
-	void set_clip_range(double min, double max);
 	void set_output_to_file(bool file_output);
 	void set_stagnation_tolerance(double epsilon);
 
-	virtual void set_color_scaling(const std::vector<uint32_t> & scaling)
-	{
-		//
-	}
-
-	virtual void set_automatic_color_scaling(uint32_t levels)
-	{
-		//
-	}
-
-	double clip_value(double value) const;
-
 	void set_airfoil(wif_core::airfoil_c * new_airfoil);
 
-	virtual void draw(const std::string & filename = "") = 0;
-
-	virtual void draw_ivo(const std::string & filename = "")
-	{
-		draw(filename);
-	}
-
-	void set_streamline_seeds(const wif_core::line_2d_c & streamline_seeds);
-
-	void set_streamline_resolution(uint32_t streamline_resolution);
+	virtual void draw(const std::string & name = "") = 0;
 
 	virtual void plotVectors(std::vector<std::vector<double>>, std::vector<double>, std::vector<std::string>, std::string, std::string, std::string, std::string);
 
 	//
 
-	void set_arrow_scale(double new_arrow_scale)
+	scalar_field_c & get_psi_field()
 	{
-		this->arrow_scale = new_arrow_scale;
+		return this->psi_field;
+	}
+
+	scalar_field_c & get_phi_field()
+	{
+		return this->phi_field;
+	}
+
+	vector_field_c & get_v_field()
+	{
+		return this->v_field;
+	}
+
+	global_settings_c & get_global_settings()
+	{
+		return this->global_settings;
 	}
 
 protected:
@@ -98,8 +164,6 @@ protected:
 	vector_2d_c velocity_bins;
 
 	std::vector<double> contour_locations;
-	double clip_min;
-	double clip_max;
 	bool output_to_file;
 
 	double arrow_scale;
@@ -112,8 +176,12 @@ protected:
 	wif_core::line_2d_c streamline_seeds;
 	uint32_t streamline_resolution;
 
-private:
+protected:
+	scalar_field_c psi_field;
+	scalar_field_c phi_field;
+	vector_field_c v_field;
 
+	global_settings_c global_settings;
 };
 
 
