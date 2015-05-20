@@ -265,9 +265,9 @@ void visualize_scalar_field(const scalar_field_c & field, vtkSmartPointer<vtkStr
 		data_set_mapper->SetScalarRange(min_v, max_v);
 		data_set_mapper->InterpolateScalarsBeforeMappingOn();
 
-        vtkSmartPointer<vtkScalarBarActor> scalar_bar = vtkSmartPointer<vtkScalarBarActor>::New();
-        scalar_bar->SetLookupTable(data_set_mapper->GetLookupTable());
-        renderer->AddActor(scalar_bar);
+		vtkSmartPointer<vtkScalarBarActor> scalar_bar = vtkSmartPointer<vtkScalarBarActor>::New();
+		scalar_bar->SetLookupTable(data_set_mapper->GetLookupTable());
+		renderer->AddActor(scalar_bar);
 
 		vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
 		actor->SetMapper(data_set_mapper);
@@ -380,7 +380,7 @@ void visualize_vector_field(const vector_field_c & field, vtkSmartPointer<vtkStr
 			stream_line->SetInput(grid);
 			stream_line->SetSource(seeds->GetOutput());
 			stream_line->SetMaximumPropagationTime(20);
-			stream_line->SetIntegrationStepLength(.2);
+			stream_line->SetIntegrationStepLength(.001);
 			stream_line->SetStepLength(.001);
 			stream_line->SetNumberOfThreads(1);
 			stream_line->SetIntegrationDirectionToForward();
@@ -666,7 +666,7 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_lijnen(std::vector<wif
 
 	vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
 
-	int N = mylines.size() ;                                                 // aantal lijnen dat getekend moet worden.
+	int N = mylines.size();                                                 // aantal lijnen dat getekend moet worden.
 
 	for(int j = 0; j < N; j = j + 1)
 	{
@@ -734,7 +734,7 @@ vtkSmartPointer<vtkActor> visualization_vtk_c::geef_actor_punten(std::vector<wif
 	colors->SetName("Colors");
 
 
-	int n = mypoints.size() ;
+	int n = mypoints.size();
 
 	for(int j = 0; j < n; j = j + 1)
 	{

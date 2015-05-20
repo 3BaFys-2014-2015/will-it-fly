@@ -100,44 +100,39 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		return;
 	}
 
-	wif_core::vector_2d_c centre(0.5, 0.0);
-	wif_core::airfoil_c circle(centre, 0.5, 20);
-	//wif_core::line_2d_c line(0.0, -1.0, 0.0, 1.0);
+	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(2.0 * M_PI / 180, 1.0);
 
-	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180, 1.0);
+	auto result = wif_algo::calculate_flow(foil, flow, true, 0.0);
+	return;
+	/*
+		{
+			std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
+			vizy->get_psi_field().bins = {201, 201};
+			vizy->get_psi_field().style = (wif_viz::E_SCALAR_DRAW_STYLE)(wif_viz::ESDS_GRADIENT | wif_viz::ESDS_CONTOURS);
+			vizy->get_phi_field().bins = {201, 201};
+			vizy->get_phi_field().style = wif_viz::ESDS_CONTOURS;
 
-	auto result = wif_algo::calculate_flow(circle, flow, false, 1.0);
+			vizy->set_airfoil(&foil);
 
-	//std::shared_ptr<wif_core::flow_accumulate_c> flowacc = std::make_shared<wif_core::flow_accumulate_c>(flow);
-	//flowacc->add_source_sheet(line, 1.0)
-
+			vizy->draw("");
+		}
+	*/
 	{
-		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-		vizy->get_psi_field().bins = {201, 201};
-		vizy->get_psi_field().style = (wif_viz::E_SCALAR_DRAW_STYLE)(wif_viz::ESDS_GRADIENT | wif_viz::ESDS_CONTOURS);
-		vizy->get_phi_field().bins = {201, 201};
-		vizy->get_phi_field().style = wif_viz::ESDS_CONTOURS;
-
-		vizy->set_airfoil(&circle);
-
-		vizy->draw("");
-	}
-
-	{
-		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-		vizy->get_v_field().bins = {101, 101};
+		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -0.5}, {1.5, 0.5});
+		vizy->get_v_field().bins = {1001, 1001};
 		vizy->get_v_field().style = wif_viz::EVDS_STREAMLINES;
-		vizy->get_v_field().streamline_resolution = 11;
-		vizy->get_v_field().streamline_seeds = { -0.5, 1.0, -0.5, -1.0};
+		vizy->get_v_field().arrow_scale = 0.001;
+		vizy->get_v_field().streamline_resolution = 50;
+		vizy->get_v_field().streamline_seeds = { -0.5, 0.5, -0.5, -0.5};
 
-		vizy->set_airfoil(&circle);
+		vizy->set_airfoil(&foil);
 
 		vizy->draw("41584864");
 		std::cout << "DFSDF" << std::endl;
 	}
 }
 
-
+#if 0
 
 void test_uniflow(bool screen)
 {
@@ -302,6 +297,7 @@ void tests()
 	test_airfoil(a);
 }
 
+#endif
 
 int main(int argc, char ** argv)
 {
@@ -327,9 +323,22 @@ int main(int argc, char ** argv)
 		return 0;
 	}
 
-	//.closed_intersect(0)/*.get_circle_projection(10, {0.5, 0.0}, 0.5)*/;
 
-	a = a.closed_intersect(0);
+	//.closed_intersect(0)/*)*/;
+
+	for(const auto & p : a.get_points())
+	{
+		std::cout << p << std::endl;
+	}
+
+	std::cout << std::endl << std::endl;
+
+	a = a.get_circle_projection(80, {0.5, 0.0}, 0.5)/*.closed_merge(0.01)*/;
+
+	for(const auto & p : a.get_points())
+	{
+		std::cout << p << std::endl;
+	}
 
 	test_airfoil(a);
 
