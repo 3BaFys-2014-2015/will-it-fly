@@ -6,9 +6,6 @@
 
 int main()
 {
-	std::cout << wif_core::get_version() << std::endl;
-	std::cout << wif_viz::get_version()  << std::endl;
-	std::cout << wif_algo::get_version() << std::endl;
 	std::shared_ptr<wif_core::flow_c> unifl = std::make_shared<wif_core::uniform_flow_c>(0.0, 0.10);
 
 	std::cout << "1.1" << std::endl;
@@ -38,8 +35,6 @@ int main()
 	//int binsx = 20, binsy = 20;
 
 	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(unifl, min, max);
-	vizy->set_clip_range(-500, 500);
-
 	//vizy->set_velocityarrows(bins);
 	vizy->set_psi_bins(bins);
 	vizy->set_phi_bins(bins);

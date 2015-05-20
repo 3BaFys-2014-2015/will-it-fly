@@ -10,7 +10,6 @@ void make_plot(const wif_core::flow_accumulate_c & flow)
 	viz->set_phi_bins({300, 300});
 	viz->set_psi_bins({300, 300});
 	viz->set_velocity_bins({300, 300});
-	viz->set_clip_range(-20, 20);
 	viz->set_output_to_file(true);
 	viz->draw("default");
 }
@@ -21,7 +20,6 @@ void make_plot(const wif_core::flow_accumulate_c & flow, wif_core::airfoil_c * a
 	viz->set_phi_bins({300, 300});
 	viz->set_psi_bins({300, 300});
 	viz->set_velocity_bins({300, 300});
-	viz->set_clip_range(-20, 20);
 	viz->set_output_to_file(true);
 	viz->set_airfoil(airfoil);
 	viz->draw("default");
