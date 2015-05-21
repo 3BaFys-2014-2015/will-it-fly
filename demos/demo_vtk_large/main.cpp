@@ -4,94 +4,7 @@
 #include <wif_algo/wif_algo.hpp>
 #include <wif_viz/wif_viz.hpp>
 
-#include <thread>
-
-void print_all_fields(const std::string & name, std::shared_ptr<wif_core::flow_c>  flow,
-                      const wif_core::vector_2d_c                 &                min,
-                      const wif_core::vector_2d_c                 &                max,
-                      const wif_core::vector_2d_c                 &                binning)
-{
-	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-
-	vizy->set_psi_bins(binning);
-	vizy->set_phi_bins(binning);
-	vizy->set_velocity_bins(binning);
-
-	vizy->draw(name);
-}
-
-void print_psi(const std::string        &        name,
-               std::shared_ptr<wif_core::flow_c> flow,
-               const wif_core::vector_2d_c   &   min,
-               const wif_core::vector_2d_c   &   max,
-               const wif_core::vector_2d_c   &   binning)
-{
-	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-	vizy->set_psi_bins(binning);
-
-	vizy->draw("");
-}
-
-//
-
-//
-
-
-
-//
-
-void print_phi(const std::string        &        name,
-               std::shared_ptr<wif_core::flow_c> flow,
-               const wif_core::vector_2d_c   &   min,
-               const wif_core::vector_2d_c   &   max,
-               const wif_core::vector_2d_c   &   binning)
-{
-	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-
-	vizy->draw("");
-}
-
-
-void print_velocity(const std::string        &        name,
-                    std::shared_ptr<wif_core::flow_c> flow,
-                    const wif_core::vector_2d_c   &   min,
-                    const wif_core::vector_2d_c   &   max,
-                    const wif_core::vector_2d_c   &   binning)
-{
-	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, min, max);
-
-	vizy->set_velocity_bins(binning);
-
-
-	vizy->draw("");
-}
-
-
-
-void visualize_all(bool                               screen,
-                   const std::string         &        name,
-                   std::shared_ptr<wif_core::flow_c>  flow,
-                   const wif_core::vector_2d_c    &   min,
-                   const wif_core::vector_2d_c    &   max,
-                   const wif_core::vector_2d_c    &   binning)
-{
-	if(screen)
-	{
-		print_psi(name, flow, min, max, binning);
-		print_phi(name, flow, min, max, binning);
-		print_velocity(name, flow, min, max, binning);
-	}
-	else
-	{
-		print_all_fields(name, flow, min, max, binning);
-	}
-}
-
-
-std::string get_name(bool screen, const std::string & filename)
-{
-	return screen ? "" : filename;
-}
+#include <algorithm>
 
 void test_airfoil(wif_core::airfoil_c & foil)
 {
@@ -100,26 +13,74 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		return;
 	}
 
-	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(2.0 * M_PI / 180, 1.0);
+	if(!foil.check_lengths())
+	{
+		std::cout << "LENGTH ERROR" << std::endl;
+		return;
+	}
+
+	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180.0, 1.0);
 
 	auto result = wif_algo::calculate_flow(foil, flow, true, 0.0);
-	return;
-	/*
+
+	std::cout << "Calculated flow from: " << foil.get_name() << std::endl;
+	std::cout << "In a uniform flow with strength " << flow->get_strength() << " and AoA " << flow->get_angle() * 180.0 / M_PI << std::endl;
+	std::cout << std::endl;
+	std::cout << "C_l = " << result.c_l << std::endl;
+	std::cout << "CBC = " << result.closed_body_check << std::endl;
+	std::cout << "First v_t: " << result.v_t.front() << std::endl;
+	std::cout << "Last  v_t: " << result.v_t.back() << std::endl;
+	std::cout << std::endl;
+
+	{
+		uint32_t i = foil.get_index_of_first_lower_panel();
+		std::cout << i << std::endl;
+
+		std::vector<std::vector<double>> data;
+
+		std::vector<double> c_p(result.c_p.begin(), result.c_p.begin() + i);
+		std::reverse(c_p.begin(), c_p.end());
+
+		data.push_back(c_p);
+
+		std::vector<std::string> Legend(1);
+		Legend[0] = "CP Bovenkant";
+		//Legend[1] = "Onderkant";
+		//Legend[2] = "Verschil";
+
+		foil.get_upper_panels_x();
+		foil.get_lower_panels_x();
+
+		std::vector<double> x_as;
+
+		for(int j = 0; j < i; j++)
 		{
-			std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
-			vizy->get_psi_field().bins = {201, 201};
-			vizy->get_psi_field().style = (wif_viz::E_SCALAR_DRAW_STYLE)(wif_viz::ESDS_GRADIENT | wif_viz::ESDS_CONTOURS);
-			vizy->get_phi_field().bins = {201, 201};
-			vizy->get_phi_field().style = wif_viz::ESDS_CONTOURS;
+			std::cout << foil.get_lines()[j].get_center_point().x << std::endl;
 
-			vizy->set_airfoil(&foil);
-
-			vizy->draw("");
+			x_as.push_back(foil.get_lines()[j].get_center_point().x);
 		}
-	*/
+
+		std::reverse(x_as.begin(), x_as.end());
+
+		std::shared_ptr<wif_viz::visualization_c> root = wif_viz::create_visualization_root(0, {0, 0}, {0, 0});
+		root->plotVectors(data, x_as, Legend, "lel.png", "x", "cp", "Aantal panelen = 100, Alpha = 45, Met Kutta");
+	}
+
+	{
+		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -1.0}, {1.5, 1});
+		vizy->get_psi_field().bins = {201, 201};
+		vizy->get_psi_field().style = (wif_viz::E_SCALAR_DRAW_STYLE)(wif_viz::ESDS_GRADIENT | wif_viz::ESDS_CONTOURS);
+		vizy->get_phi_field().bins = {201, 201};
+		vizy->get_phi_field().style = wif_viz::ESDS_CONTOURS;
+
+		vizy->set_airfoil(&foil);
+
+		vizy->draw("");
+	}
+
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -0.5}, {1.5, 0.5});
-		vizy->get_v_field().bins = {1001, 1001};
+		vizy->get_v_field().bins = {101, 101};
 		vizy->get_v_field().style = wif_viz::EVDS_STREAMLINES;
 		vizy->get_v_field().arrow_scale = 0.001;
 		vizy->get_v_field().streamline_resolution = 50;
@@ -131,173 +92,6 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		std::cout << "DFSDF" << std::endl;
 	}
 }
-
-#if 0
-
-void test_uniflow(bool screen)
-{
-	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(M_PI / 4.0, 1.0);
-
-	std::cout << flow->get_angle() / M_PI << std::endl;
-
-	{
-		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, { -1, -1}, {1, 1});
-		vizy->set_psi_bins({101, 101});
-		vizy->set_contours(20);
-
-		vizy->draw("");
-	}
-
-	{
-		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(flow, { -1, -1}, {1, 1});
-		vizy->set_phi_bins({101, 101});
-
-		vizy->draw("");
-	}
-
-	//visualize_all(screen, "test-uniflow", flow, { -2, -2}, {2, 2}, {31, 31});
-
-	//std::cout << flow->get_psi({ -2.0, -2.0}) << std::endl;
-}
-
-
-void test_circle(bool screen)
-{
-	wif_core::airfoil_c airfoil({0, 0}, 1, 30);
-
-	std::shared_ptr<wif_core::flow_accumulate_c> flow = std::make_shared<wif_core::flow_accumulate_c>();
-	flow->add_source_sheets(std::vector<double>(airfoil.get_lines().size(), 1), airfoil);
-
-	visualize_all(screen, "test-circle", flow, { -2, -2}, {2, 2}, {101, 101});
-}
-
-
-void test_circle_flow(bool screen)
-{
-	wif_core::airfoil_c airfoil({0, 0}, 1, 4);
-
-	std::shared_ptr<wif_core::flow_c> uniflow = std::make_shared<wif_core::uniform_flow_c>(0.0, -1.0);
-	std::shared_ptr<wif_core::flow_accumulate_c> flow = std::make_shared<wif_core::flow_accumulate_c>();
-	flow->add_source_sheets(std::vector<double>(airfoil.get_lines().size(), 1.0), airfoil);
-
-	visualize_all(screen, "test-circle-flow", flow, { -2, -2}, {2, 2}, {101, 101});
-}
-
-void test_sheet(bool screen)
-{
-	std::shared_ptr<wif_core::flow_c> uniflow = std::make_shared<wif_core::uniform_flow_c>(0.0, 0.0);
-	std::shared_ptr<wif_core::flow_accumulate_c> flow = std::make_shared<wif_core::flow_accumulate_c>();
-
-	wif_core::line_2d_c l({0, -1.0}, {0, 1.0});
-
-	flow->add_flow(std::make_shared<wif_core::vortex_sheet_c>(l, 1.0));
-	//flow->add_source_sheets(std::vector<double>(airfoil.get_lines().size(), 1.0), airfoil);
-
-	visualize_all(screen, "test-circle-flow", flow, { -2, -2}, {2, 2}, {101, 101});
-}
-
-using namespace wif_core;
-using namespace wif_viz;
-
-void test_source(bool screen)
-{
-	vector_2d_c min(-2.0, -2.0);
-	vector_2d_c max(2.0, 2.0);
-
-	auto source_sink = std::make_shared<source_sink_c>(vector_2d_c(0.0, 0.0), 1.0);
-
-	{
-		auto viz = create_visualization_vtk(source_sink, min, max);
-
-		viz->set_psi_bins({100, 100});
-		viz->draw();
-	}
-
-	{
-		auto viz = create_visualization_vtk(source_sink, min, max);
-
-		viz->set_phi_bins({100, 100});
-		viz->draw();
-	}
-
-
-	visualize_all(screen, "test-source", source_sink, { -2, -2}, {2, 2}, {101, 101});
-
-	auto source_sink_2 = std::make_shared<source_sink_c>(vector_2d_c(1.0, 1.0), 1.0);
-
-	visualize_all(screen, "test-source", source_sink_2, { -2, -2}, {2, 2}, {101, 101});
-
-	auto both = std::make_shared<flow_accumulate_c>(source_sink);
-
-	both->add_flow(source_sink_2);
-
-	visualize_all(screen, "test-source", both, { -2, -2}, {2, 2}, {101, 101});
-}
-
-void test_airfoil()
-{
-
-#if 1
-	wif_core::airfoil_c airfoil("../../wif_core/airfoils/selig.dat");
-	wif_core::airfoil_c n_airfoil = airfoil.closed_intersect(0);
-
-	auto lines = n_airfoil.get_points();
-
-	for(const auto & l : lines)
-	{
-		std::cout << l << std::endl;
-	}
-
-	//std::cout << n_airfoil << std::endl;*/
-#else
-	wif_core::airfoil_c airfoil({0, 0}, 1, 100);
-	//wif_core::airfoil_c n_airfoil = airfoil.get_circle_projection(100, {0.0, 0.0}, 2.0);
-
-	wif_core::airfoil_c n_airfoil = airfoil;
-#endif // 1
-
-	if(!airfoil.is_valid())
-	{
-		return;
-	}
-
-	std::shared_ptr<wif_core::uniform_flow_c> uniflow = std::make_shared<wif_core::uniform_flow_c>(0.2, 1.0);
-	std::shared_ptr<wif_core::flow_accumulate_c> flow = std::make_shared<wif_core::flow_accumulate_c>(uniflow);
-
-	auto f = wif_algo::calculate_flow(n_airfoil, uniflow, false, 0.0);
-
-	//flow->add_flow(f);
-	//flow->add_source_sheets(std::vector<double>(airfoil.get_lines().size(), 1), airfoil);
-
-	std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(f.flow, { -2, -3}, {2, 3});
-
-	vizy->get_psi_field().bins = {101, 101};
-
-	vizy->set_velocity_bins({51, 51});
-	vizy->set_airfoil(&n_airfoil);
-	vizy->set_contours(200);
-
-	vizy->draw("gdgdfg");
-
-	//visualize_all(screen, "test-circle", flow, { -2, -2}, {2, 2}, {101, 101});
-}
-
-void tests()
-{
-	bool screen = true;
-
-	//test_uniflow(screen);
-	//test_circle(screen);
-	//test_circle_flow(screen);
-	//test_sheet(screen);
-	//test_source(screen);
-
-	wif_core::airfoil_c a = wif_core::airfoil_c("./wif_core/airfoils/selig.dat").closed_intersect(0)/*.get_circle_projection(10, {0.5, 0.0}, 0.5)*/;
-
-	test_airfoil(a);
-}
-
-#endif
 
 int main(int argc, char ** argv)
 {
@@ -311,36 +105,48 @@ int main(int argc, char ** argv)
 
 	std::string filename = argv[1];
 #else
-	//std::string filename = "../../../coord_seligFmt/mh114.dat";
+	std::string filename = "../../../coord_seligFmt/mh70.dat";
 	//std::string filename = "../../wif_core/airfoils/lednicer.dat";
-	std::string filename = "../../wif_core/airfoils/n0012-il.dat";
+	//std::string filename = "../../wif_core/airfoils/n0012-il.dat";
+	//std::string filename = "../../wif_core/airfoils/selig.dat";
 #endif
-	wif_core::airfoil_c a = wif_core::airfoil_c(filename);
 
-	if(!a.is_valid())
+	if(true)
 	{
-		std::cout << "Error loading datafile" << std::endl;
-		return 0;
+		wif_core::airfoil_c a = wif_core::airfoil_c(filename);
+
+		if(!a.is_valid())
+		{
+			std::cout << "Error loading datafile" << std::endl;
+			return 0;
+		}
+
+
+		//.closed_intersect(0)/*)*/;
+
+		for(const auto & p : a.get_points())
+		{
+			std::cout << p << std::endl;
+		}
+
+		std::cout << std::endl << std::endl;
+
+		a = a.closed_intersect(0.0).get_circle_projection(40);
+
+		for(const auto & p : a.get_points())
+		{
+			std::cout << p << std::endl;
+		}
+
+		test_airfoil(a);
+	}
+	else
+	{
+		wif_core::airfoil_c x({0.5, 0.0}, 0.5, 10);
+
+		test_airfoil(x);
 	}
 
-
-	//.closed_intersect(0)/*)*/;
-
-	for(const auto & p : a.get_points())
-	{
-		std::cout << p << std::endl;
-	}
-
-	std::cout << std::endl << std::endl;
-
-	a = a.get_circle_projection(80, {0.5, 0.0}, 0.5)/*.closed_merge(0.01)*/;
-
-	for(const auto & p : a.get_points())
-	{
-		std::cout << p << std::endl;
-	}
-
-	test_airfoil(a);
 
 	return 0;
 }

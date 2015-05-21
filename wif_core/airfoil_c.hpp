@@ -47,6 +47,18 @@ public:
 	 */
 	airfoil_c get_circle_projection(uint32_t n, const vector_2d_c & projection_center, double radius, double epsilon = 0.0001) const;
 
+	airfoil_c get_circle_projection(uint32_t n, double epsilon = 0.0001) const;
+
+	bool check_lengths() const;
+
+	typename std::vector<vector_2d_c>::size_type get_index_of_last_upper_panel() const;
+
+	typename std::vector<vector_2d_c>::size_type get_index_of_first_lower_panel() const;
+
+	std::vector<double> get_upper_panels_x() const;
+
+	std::vector<double> get_lower_panels_x() const;
+
 	/**
 	 * Check if the last points is the same as the first, within a certain error
 	 * @epsilon maximum distance as with points are considered the same

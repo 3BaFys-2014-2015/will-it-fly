@@ -161,6 +161,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 	{
 		wif_core::line_2d_c temp_line = mylines[i];
 		lengths[i] = temp_line.get_length();
+		std::cout << lengths[i] << std::endl;
 		centers[i] = temp_line.get_center_point();
 
 		wif_core::vector_2d_c a((temp_line.end.y - temp_line.begin.y), -(temp_line.end.x - temp_line.begin.x));
@@ -177,6 +178,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 	double result, error;
 	double s_0 = 0.;
 	std::vector<double> c_p(num_lines);
+	std::vector<double> v_ti(num_lines);
 	std::shared_ptr<wif_core::flow_accumulate_c> accumulate_flow = std::make_shared<wif_core::flow_accumulate_c>();
 	size_t nevals;
 	double v_t_i;
@@ -235,11 +237,12 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 		gsl_linalg_LU_solve(&matrix_A_view.matrix, p, &vector_b_view.vector, x);
 
-		std::vector<double> Sigma(num_columns);
+		std::cout << "Printing sigma's" << std::endl;
 
 		for(int i = 0; i < num_columns; i++)
 		{
 			Sigma[i] = gsl_vector_get(x, i);
+			std::cout << Sigma[i] << std::endl;
 		}
 
 		gsl_permutation_free(p);
@@ -267,9 +270,9 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
 					v_t_i -= gamma / (2 * pi) * result;
 				}
-
 			}
 
+			v_ti[i] = v_t_i;
 			c_p[i] = 1.0 - pow((U_inf * (-sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack)) + v_t_i) / U_inf, 2);
 		}
 	} // if (Kutta)
@@ -404,10 +407,6 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 					gsl_matrix_set(&matrix_A_view.matrix, (size_t) i, (size_t) j, last_element_value);
 				}
-				else
-				{
-					std::cout << i << "  " << j << "  Deze indices zitten er niet bij ?" << std::endl;
-				}
 			}
 		}
 
@@ -432,9 +431,8 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 		}
 
 		gamma = gsl_vector_get(x, num_lines);
+
 		std::cout << "Gamma is " << gamma << std::endl;
-		//printf("a = \n");
-		//gsl_matrix_fprintf(stdout, &matrix_A_view.matrix, "%g");
 
 		gsl_permutation_free(p);
 		gsl_vector_free(x);
@@ -465,18 +463,24 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 				}
 			}
 
+			v_ti[i] = v_t_i;
 			c_p[i] = 1.0 - pow((U_inf * (-sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack)) + v_t_i) / U_inf, 2);
 		}
 	} // else kutta
 
 	accumulate_flow->add_flow(myFlow);
 	accumulate_flow->add_source_sheets(Sigma, myAirfoil);
-	accumulate_flow->add_vortex_sheets(gamma, myAirfoil);
+
+	if(gamma != 0)
+	{
+		accumulate_flow->add_vortex_sheets(gamma, myAirfoil);
+	}
 
 	c.airfoil = myAirfoil;
 	c.c_p = c_p;
 	c.c_l = calculate_cl(myAirfoil, U_inf, gamma);
 	c.flow = accumulate_flow;
+	c.v_t = v_ti;
 	c.closed_body_check = std::inner_product(lengths.begin(), lengths.end(), Sigma.begin(), 0.0);
 
 	std::cout << c.closed_body_check << std::endl;

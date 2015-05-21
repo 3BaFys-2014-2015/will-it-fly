@@ -20,73 +20,285 @@ airfoil_c::airfoil_c() :
 	//
 }
 
-
-airfoil_c::airfoil_c(const std::string & filename)
+bool is_empty_line(const std::string & line)
 {
+	return line.find_first_not_of(" \t\n\r") == std::string::npos;
+}
 
-	std::ifstream detect(filename);
+bool contains_non_digits(const std::string & line)
+{
+	return line.find_first_not_of("0123456789.- \t\n\r") != std::string::npos;
+}
 
-	if(!detect.is_open())
+bool string_to_double_doubles(const std::string & line, double & a, double & b)
+{
+	std::istringstream is(line);
+
+	if(is >> a)
 	{
-		return; //just give up if file does not open
-	}
-
-	std::string line1;
-	std::string data_pit;
-	std::getline(detect, line1);
-	double testval;
-	detect >> testval;
-	//std::cout << "testvalue :" << testval << std::endl;
-	detect.close();
-	std::ifstream data(filename);
-
-	if(!data.good())
-	{
-		std::cout << "Could not open file." << filename << std::endl;
-		return; //just give up if file does not open
-	}
-
-
-	if(testval > 1)
-	{
-
-		std::getline(data, this->name);
-		std::getline(data, data_pit);
-		double x;
-		double y;
-		data >> x >> y;
-
-
-		while(data.good())
+		if(is >> b)
 		{
-			double x;
-			double y;
-			data >> x >> y;
-			this->points.emplace_back(x, y);
-			//std::cout << x << "\t" << y << std::endl;
+			return true;
 		}
-
-		unsigned int half_size = this->points.size() / 2;
-		std::reverse(this->points.begin(), this->points.end() - half_size - 1);
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
+		return false;
+	}
+}
 
-		//selig format
-		std::getline(data, this->name);
+airfoil_c::airfoil_c(const std::string & filename) :
+	name("")
+{
+	std::ifstream file(filename);
 
-		while(data.good())
+	if(!file.is_open())
+	{
+		std::cout << "Warning: file " << filename << "Couldn't be loaded, using this airfoil might give segmentation faults." << std::endl;
+		return;
+	}
+
+	std::string line;
+	bool ok = false;
+
+	/// Skip whitespace before the header.
+	while(!file.eof())
+	{
+		std::getline(file, line);
+
+		if(!is_empty_line(line))
 		{
-			double x;
-			double y;
-			data >> x >> y;
-			this->points.emplace_back(x, y);
-			//std::cout << x << "\t" << y << std::endl;
+			ok = true;
+			break;
 		}
 	}
 
-	this->points.pop_back(); //reads last line double. Not any more
+	if(!ok)
+	{
+		std::cout << "ERROR READING AIRFOIL: FILE CLOSED TOO SOON." << std::endl;
+		return;
+	}
 
+	ok = false;
+	name.append(line);
+
+	while(!file.eof())
+	{
+		std::getline(file, line);
+
+		// Ignore empty lines.
+		if(is_empty_line(line))
+		{
+			std::cout << "SKIPPING WHITESPACE IN HEADER: THIS IS WEIRD, BUT OK." << std::endl;
+			continue;
+		}
+
+		// Add all text to the name.
+		if(contains_non_digits(line))
+		{
+			name.append(line);
+		}
+		else
+		{
+			ok = true;
+			break;
+		}
+	}
+
+	if(!ok)
+	{
+		std::cout << "ERROR READING AIRFOIL: FILE CLOSED TOO SOON." << std::endl;
+		return;
+	}
+
+	ok = false;
+	double x = 0.0;
+	double y = 0.0;
+
+	if(!string_to_double_doubles(line, x, y))
+	{
+		std::cout << "ERROR READING AIRFOIL: COULDN'T EXTRACT LINE." << std::endl;
+		return;
+	}
+
+	const double lednicer_cutoff = 1.2;
+
+	if((x < lednicer_cutoff) && (y < lednicer_cutoff))
+	{
+		/// Selig
+
+		this->points.emplace_back(x, y);
+
+		std::cout << x << y << std::endl;
+
+		while(!file.eof())
+		{
+			std::cout << line << std::endl;
+			std::getline(file, line);
+
+			if(is_empty_line(line))
+			{
+				std::cout << "SKIPPING WHITESPACE IN SELIGER FORMAT: THIS IS WEIRD, BUT OK. IT MIGHT BE A TRAILING NEWLINE." << std::endl;
+				std::cout << line << std::endl;
+				continue;
+			}
+			else if(contains_non_digits(line))
+			{
+				std::cout << "ERROR READING AIRFOIL: TEXT IN NUMBER ONLY AREA." << std::endl;
+				return;
+			}
+			else if(string_to_double_doubles(line, x, y))
+			{
+				this->points.emplace_back(x, y);
+			}
+			else
+			{
+				std::cout << "ERROR READING AIRFOIL: COULDN'T EXTRACT DOUBLES FROM LINE." << std::endl;
+				return;
+			}
+		}
+	}
+	else
+	{
+		/// LEDNICER
+
+		bool topside = true;
+		bool started_reading = false;
+
+		while(!file.eof())
+		{
+			std::getline(file, line);
+
+			if(is_empty_line(line))
+			{
+				if(topside)
+				{
+					if(started_reading)
+					{
+						if(this->points.size() == 0)
+						{
+							std::cout << "ERROR: WEIRD AIRFOIL, NO POINTS ON TOP. THIS SHOULD NEVER HAPPEN." << std::endl;
+							return;
+						}
+
+						topside = false;
+
+						std::reverse(this->points.begin(), this->points.end());
+						continue;
+					}
+					else
+					{
+						continue;
+					}
+				}
+				else
+				{
+					std::cout << "WARNING: MORE THAN ONE EMPTY LINE IN LEDNICER FORMAT IN DATA PART. THIS MIGHT BE A TRAILING NEWSPACE AND NOT AN ISSUE." << std::endl;
+				}
+			}
+			else if(contains_non_digits(line))
+			{
+				std::cout << "ERROR READING AIRFOIL: TEXT IN NUMBER ONLY AREA." << std::endl;
+				return;
+			}
+			else if(string_to_double_doubles(line, x, y))
+			{
+				if(!started_reading)
+				{
+					started_reading = true;
+				}
+
+				if(topside)
+				{
+					this->points.emplace_back(x, y);
+				}
+				else
+				{
+					const vector_2d_c p(x, y);
+
+					if((p - this->points.back()).get_length_sq() > (0.0001))
+					{
+						this->points.push_back(p);
+					}
+				}
+			}
+			else
+			{
+				std::cout << "ERROR READING AIRFOIL: COULDN'T EXTRACT DOUBLES FROM LINE." << std::endl;
+				return;
+			}
+		}
+	}
+
+	//
+	/* DO NOT USE
+		std::ifstream detect(filename);
+
+		if(!detect.is_open())
+		{
+			return; //just give up if file does not open
+		}
+
+		std::string line1;
+		std::string data_pit;
+		std::getline(detect, line1);
+		double testval;
+		detect >> testval;
+		//std::cout << "testvalue :" << testval << std::endl;
+		detect.close();
+		std::ifstream data(filename);
+
+		if(!data.good())
+		{
+			std::cout << "Could not open file." << filename << std::endl;
+			return; //just give up if file does not open
+		}
+
+
+		if(testval > 1)
+		{
+
+			std::getline(data, this->name);
+			std::getline(data, data_pit);
+			double x;
+			double y;
+			data >> x >> y;
+
+
+			while(data.good())
+			{
+				double x;
+				double y;
+				data >> x >> y;
+				this->points.emplace_back(x, y);
+				//std::cout << x << "\t" << y << std::endl;
+			}
+
+			unsigned int half_size = this->points.size() / 2;
+			std::reverse(this->points.begin(), this->points.end() - half_size - 1);
+		}
+		else
+		{
+
+			//selig format
+			std::getline(data, this->name);
+
+			while(data.good())
+			{
+				double x;
+				double y;
+				data >> x >> y;
+				this->points.emplace_back(x, y);
+				//std::cout << x << "\t" << y << std::endl;
+			}
+		}
+
+		this->points.pop_back(); //reads last line double. Not any more
+	*/
 }
 
 airfoil_c::airfoil_c(const std::vector<vector_2d_c> & points, const std::string & name) :
@@ -99,17 +311,89 @@ airfoil_c::airfoil_c(const std::vector<vector_2d_c> & points, const std::string 
 
 airfoil_c::airfoil_c(const vector_2d_c & midpoint, double radius, unsigned int corners) :
 	name("circle"),
-	points(corners + 1, vector_2d_c(0, 0))
+	points(corners + 1, vector_2d_c(0.0, 0.0))
 {
 	for(unsigned int i = 0; i <= corners; i++)
 	{
-		points[i] = (vector_2d_radian(radius, (2 * M_PI * i) / corners) + midpoint);
+		points[i] = (vector_2d_radian(radius, (2.0 * M_PI * i) / corners) + midpoint);
 	}
 }
 
+typename std::vector<vector_2d_c>::size_type airfoil_c::get_index_of_last_upper_panel() const
+{
+	if(!is_valid())
+	{
+		return 0;
+	}
+
+	double last_x = this->points.front().x + 0.01;
+
+	for(uint32_t i = 0; i < this->points.size(); i++)
+	{
+		if(this->points[i].x >= last_x)
+		{
+			return i - 1;
+		}
+		else
+		{
+			last_x = this->points[i].x;
+		}
+	}
+
+	return 0;
+}
+
+typename std::vector<vector_2d_c>::size_type airfoil_c::get_index_of_first_lower_panel() const
+{
+	if(!is_valid())
+	{
+		return 0;
+	}
+
+	double last_x = this->points.back().x + 0.1;
+
+	for(uint32_t i = (this->points.size() - 1); i >= 0; i--)
+	{
+		if(this->points[i].x >= last_x)
+		{
+			return i - 1;
+		}
+		else
+		{
+			last_x = this->points[i].x;
+		}
+	}
+
+	return 0;
+}
+
+bool airfoil_c::check_lengths() const
+{
+	if(!is_valid())
+	{
+		return false;
+	}
+
+	std::vector<line_2d_c> lines = get_lines();
+
+	for(const line_2d_c & line : lines)
+	{
+		if(line.get_length() == 0.0)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
 
 std::vector<line_2d_c> airfoil_c::get_lines() const
 {
+	if(!is_valid())
+	{
+		std::cout << "WARNING: TRYING TO GET LINES FROM AN INVALID AIRFOIL" << std::endl;
+	}
+
 	std::vector<line_2d_c> ret;
 	ret.resize(this->points.size() - 1, line_2d_c(0.0, 0.0, 0.0, 0.0));
 
@@ -125,8 +409,70 @@ std::vector<line_2d_c> airfoil_c::get_lines() const
 }
 
 
+std::vector<double> airfoil_c::get_upper_panels_x() const
+{
+	std::vector<double> x_as;
+	std::vector<line_2d_c> lines = get_lines();
+
+	std::cout << "LINES: " << std::endl;
+
+	for(int i = 0; i < get_index_of_last_upper_panel(); i++)
+	{
+		std::cout << lines[i] << std::endl;
+		x_as.push_back(lines[i].get_center_point().x);
+	}
+
+	std::cout << std::endl;
+
+	std::reverse(x_as.begin(), x_as.end());
+
+	std::cout << "XAS_H:" << std::endl;
+
+	for(auto & l : x_as)
+	{
+		std::cout << l << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	return x_as;
+}
+
+std::vector<double> airfoil_c::get_lower_panels_x() const
+{
+	std::vector<double> x_as;
+	std::vector<line_2d_c> lines = get_lines();
+
+	int start = get_index_of_first_lower_panel();
+	std::cout << "LINES: " << std::endl;
+
+	for(int i = start; i < lines.size(); i++)
+	{
+		std::cout << lines[i] << std::endl;
+
+		x_as.push_back(lines[i].get_center_point().x);
+	}
+
+	std::cout << std::endl;
+	std::cout << "XAS_L:" << std::endl;
+
+	for(auto & l : x_as)
+	{
+		std::cout << l << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	return x_as;
+}
+
 const std::vector<vector_2d_c> & airfoil_c::get_points() const
 {
+	if(!is_valid())
+	{
+		std::cout << "WARNING: TRYING TO GET POINTS FROM AN INVALID AIRFOIL" << std::endl;
+	}
+
 	return points;
 }
 
@@ -175,6 +521,12 @@ vector_2d_c airfoil_c::get_intersection_last(const line_2d_c & line) const
 
 airfoil_c airfoil_c::get_circle_projection(uint32_t n, const vector_2d_c & projection_center, double radius, double epsilon) const
 {
+	if(!is_valid())
+	{
+		std::cout << "WARNING: TRYING TO GET PROJECT ON AN INVALID AIRFOIL" << std::endl;
+		return airfoil_c();
+	}
+
 	std::vector<vector_2d_c> newpoints;
 	std::stringstream newname;
 
@@ -215,12 +567,33 @@ airfoil_c airfoil_c::get_circle_projection(uint32_t n, const vector_2d_c & proje
 	return airfoil_c(newpoints, newname.str());
 }
 
+airfoil_c airfoil_c::get_circle_projection(uint32_t n, double epsilon) const
+{
+	if(!is_valid())
+	{
+		std::cout << "WARNING: TRYING TO GET PROJECT ON AN INVALID AIRFOIL" << std::endl;
+
+		return airfoil_c();
+	}
+
+	double x_max = (*std::max_element(this->points.begin(), this->points.end(), [](const vector_2d_c & lhs, const vector_2d_c & rhs)
+	{
+		return lhs.x < rhs.x;
+	})).x;
+	double x_min = (*std::min_element(this->points.begin(), this->points.end(), [](const vector_2d_c & lhs, const vector_2d_c & rhs)
+	{
+		return lhs.x < rhs.x;
+	})).x;
+
+	return get_circle_projection(n, {0.5 * (x_max - x_min), 0.0}, 0.5 * (x_max - x_min), epsilon);
+}
+
 
 bool airfoil_c::is_closed(double epsilon) const
 {
 	double lsq = (this->points.front() - this->points.back()).get_length_sq();
 
-	return !is_valid() or (lsq < (epsilon * epsilon));
+	return !is_valid() or (lsq <= (epsilon * epsilon));
 }
 
 

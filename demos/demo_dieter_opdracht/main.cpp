@@ -73,14 +73,14 @@ int main()
 	double radius = 0.5;
 	unsigned int num_lines = 100;
 	wif_core::vector_2d_c midpoint(0.5, 0);
-	wif_core::airfoil_c myAirfoil("../../wif_core/airfoils/selig.dat");
+	wif_core::airfoil_c myAirfoil("../../wif_core/airfoils/n0012-il.dat");
 
 	myAirfoil = myAirfoil.get_circle_projection(num_lines, midpoint, radius, 0.0001);
 	myAirfoil = myAirfoil.closed_merge();
 
-	double angle_in_degrees = 45;
+	double angle_in_degrees = 0;
 	std::shared_ptr<wif_core::uniform_flow_c> myFlow = std::make_shared<wif_core::uniform_flow_c>((angle_in_degrees / 180) * pi, 1);
-	bool Kutta = 1;
+	bool Kutta = 0;
 
 	wif_algo::calculation_results_c myResults = wif_algo::calculate_flow(myAirfoil, myFlow, Kutta);
 
