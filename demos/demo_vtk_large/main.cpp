@@ -19,9 +19,9 @@ void test_airfoil(wif_core::airfoil_c & foil)
 		return;
 	}
 
-	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(0.0 * M_PI / 180.0, 1.0);
+	std::shared_ptr<wif_core::uniform_flow_c> flow = std::make_shared<wif_core::uniform_flow_c>(3.0 * M_PI / 180.0, 1.0);
 
-	auto result = wif_algo::calculate_flow(foil, flow, true, 0.0);
+	auto result = wif_algo::calculate_flow(foil, flow, false, 0.0);
 
 	std::cout << "Calculated flow from: " << foil.get_name() << std::endl;
 	std::cout << "In a uniform flow with strength " << flow->get_strength() << " and AoA " << flow->get_angle() * 180.0 / M_PI << std::endl;
@@ -32,38 +32,36 @@ void test_airfoil(wif_core::airfoil_c & foil)
 	std::cout << "Last  v_t: " << result.v_t.back() << std::endl;
 	std::cout << std::endl;
 
-	{
-		uint32_t i = foil.get_index_of_first_lower_panel();
-		std::cout << i << std::endl;
+	std::vector<double> x_upper = foil.get_upper_x();
+	std::vector<double> x_lower = foil.get_lower_x();
 
+	std::cout << x_upper.size() << std::endl;
+	std::cout << x_lower.size() << std::endl;
+
+	for(double x : x_upper)
+	{
+		std::cout << x << std::endl;
+	}
+
+	{
 		std::vector<std::vector<double>> data;
 
-		std::vector<double> c_p(result.c_p.begin(), result.c_p.begin() + i);
-		std::reverse(c_p.begin(), c_p.end());
+		std::vector<double> c_p_l = foil.select_lower_data(result.c_p);
+		std::vector<double> c_p_u = foil.select_upper_data(result.c_p);
 
-		data.push_back(c_p);
+		std::cout << c_p_l.size() << std::endl;
+		std::cout << c_p_u.size() << std::endl;
 
-		std::vector<std::string> Legend(1);
-		Legend[0] = "CP Bovenkant";
-		//Legend[1] = "Onderkant";
+		data.push_back(c_p_l);
+		data.push_back(c_p_u);
+
+		std::vector<std::string> Legend(2);
+		Legend[0] = "CP Onderkant";
+		Legend[1] = "CP Bovenkant";
 		//Legend[2] = "Verschil";
 
-		foil.get_upper_panels_x();
-		foil.get_lower_panels_x();
-
-		std::vector<double> x_as;
-
-		for(int j = 0; j < i; j++)
-		{
-			std::cout << foil.get_lines()[j].get_center_point().x << std::endl;
-
-			x_as.push_back(foil.get_lines()[j].get_center_point().x);
-		}
-
-		std::reverse(x_as.begin(), x_as.end());
-
 		std::shared_ptr<wif_viz::visualization_c> root = wif_viz::create_visualization_root(0, {0, 0}, {0, 0});
-		root->plotVectors(data, x_as, Legend, "lel.png", "x", "cp", "Aantal panelen = 100, Alpha = 45, Met Kutta");
+		root->plotVectors(data, x_upper, Legend, "lel.png", "x", "cp", "Aantal panelen = 100, Alpha = 45, Met Kutta");
 	}
 
 	{
@@ -80,7 +78,7 @@ void test_airfoil(wif_core::airfoil_c & foil)
 
 	{
 		std::shared_ptr<wif_viz::visualization_c> vizy = wif_viz::create_visualization_vtk(result.flow, { -0.5, -0.5}, {1.5, 0.5});
-		vizy->get_v_field().bins = {101, 101};
+		vizy->get_v_field().bins = {401, 401};
 		vizy->get_v_field().style = wif_viz::EVDS_STREAMLINES;
 		vizy->get_v_field().arrow_scale = 0.001;
 		vizy->get_v_field().streamline_resolution = 50;
@@ -105,10 +103,10 @@ int main(int argc, char ** argv)
 
 	std::string filename = argv[1];
 #else
-	std::string filename = "../../../coord_seligFmt/mh70.dat";
+	//std::string filename = "../../../coord_seligFmt/ag03.dat";
 	//std::string filename = "../../wif_core/airfoils/lednicer.dat";
 	//std::string filename = "../../wif_core/airfoils/n0012-il.dat";
-	//std::string filename = "../../wif_core/airfoils/selig.dat";
+	std::string filename = "../../wif_core/airfoils/selig.dat";
 #endif
 
 	if(true)
@@ -121,9 +119,6 @@ int main(int argc, char ** argv)
 			return 0;
 		}
 
-
-		//.closed_intersect(0)/*)*/;
-
 		for(const auto & p : a.get_points())
 		{
 			std::cout << p << std::endl;
@@ -131,7 +126,7 @@ int main(int argc, char ** argv)
 
 		std::cout << std::endl << std::endl;
 
-		a = a.closed_intersect(0.0).get_circle_projection(40);
+		a = a.closed_intersect(0.0).get_circle_projection(20);
 
 		for(const auto & p : a.get_points())
 		{

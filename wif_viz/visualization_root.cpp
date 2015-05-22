@@ -9,6 +9,7 @@
 #include "TStyle.h"
 #include "TF2.h"
 #include "TAttLine.h"
+#include "TGaxis.h"
 #include "TLegend.h"
 #include "TMarker.h"
 #include <algorithm>

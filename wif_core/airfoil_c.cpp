@@ -319,54 +319,6 @@ airfoil_c::airfoil_c(const vector_2d_c & midpoint, double radius, unsigned int c
 	}
 }
 
-typename std::vector<vector_2d_c>::size_type airfoil_c::get_index_of_last_upper_panel() const
-{
-	if(!is_valid())
-	{
-		return 0;
-	}
-
-	double last_x = this->points.front().x + 0.01;
-
-	for(uint32_t i = 0; i < this->points.size(); i++)
-	{
-		if(this->points[i].x >= last_x)
-		{
-			return i - 1;
-		}
-		else
-		{
-			last_x = this->points[i].x;
-		}
-	}
-
-	return 0;
-}
-
-typename std::vector<vector_2d_c>::size_type airfoil_c::get_index_of_first_lower_panel() const
-{
-	if(!is_valid())
-	{
-		return 0;
-	}
-
-	double last_x = this->points.back().x + 0.1;
-
-	for(uint32_t i = (this->points.size() - 1); i >= 0; i--)
-	{
-		if(this->points[i].x >= last_x)
-		{
-			return i - 1;
-		}
-		else
-		{
-			last_x = this->points[i].x;
-		}
-	}
-
-	return 0;
-}
-
 bool airfoil_c::check_lengths() const
 {
 	if(!is_valid())
@@ -408,62 +360,107 @@ std::vector<line_2d_c> airfoil_c::get_lines() const
 	return ret;
 }
 
-
-std::vector<double> airfoil_c::get_upper_panels_x() const
+std::vector<line_2d_c> airfoil_c::get_upper_panels() const
 {
-	std::vector<double> x_as;
 	std::vector<line_2d_c> lines = get_lines();
+	std::vector<line_2d_c> upper;
 
-	std::cout << "LINES: " << std::endl;
-
-	for(int i = 0; i < get_index_of_last_upper_panel(); i++)
+	for(const line_2d_c & line : lines)
 	{
-		std::cout << lines[i] << std::endl;
-		x_as.push_back(lines[i].get_center_point().x);
+		if(line.get_difference().x < 0.0)
+		{
+			upper.push_back(line);
+		}
+		else
+		{
+			break;
+		}
 	}
 
-	std::cout << std::endl;
-
-	std::reverse(x_as.begin(), x_as.end());
-
-	std::cout << "XAS_H:" << std::endl;
-
-	for(auto & l : x_as)
+	std::sort(upper.begin(), upper.end(), [](const line_2d_c & lhs, const line_2d_c & rhs)
 	{
-		std::cout << l << std::endl;
-	}
+		return lhs.get_center_point().x < rhs.get_center_point().x;
+	});
 
-	std::cout << std::endl;
-
-	return x_as;
+	return upper;
 }
 
-std::vector<double> airfoil_c::get_lower_panels_x() const
+std::vector<double> airfoil_c::get_upper_x() const
 {
-	std::vector<double> x_as;
+	std::vector<line_2d_c> upper = get_upper_panels();
+	std::vector<double> x;
+
+	for(const line_2d_c & line : upper)
+	{
+		x.push_back(line.get_center_point().x);
+	}
+
+	return x;
+}
+
+std::vector<line_2d_c> airfoil_c::get_lower_panels() const
+{
 	std::vector<line_2d_c> lines = get_lines();
+	std::vector<line_2d_c> lower;
 
-	int start = get_index_of_first_lower_panel();
-	std::cout << "LINES: " << std::endl;
+	std::reverse(lines.begin(), lines.end());
 
-	for(int i = start; i < lines.size(); i++)
+	for(const line_2d_c & line : lines)
 	{
-		std::cout << lines[i] << std::endl;
-
-		x_as.push_back(lines[i].get_center_point().x);
+		if(line.get_difference().x > 0.0)
+		{
+			lower.push_back(line);
+		}
+		else
+		{
+			break;
+		}
 	}
 
-	std::cout << std::endl;
-	std::cout << "XAS_L:" << std::endl;
-
-	for(auto & l : x_as)
+	std::sort(lower.begin(), lower.end(), [](const line_2d_c & lhs, const line_2d_c & rhs)
 	{
-		std::cout << l << std::endl;
+		return lhs.get_center_point().x < rhs.get_center_point().x;
+	});
+
+	return lower;
+}
+
+std::vector<double> airfoil_c::get_lower_x() const
+{
+	std::vector<line_2d_c> lower = get_lower_panels();
+	std::vector<double> x;
+
+	for(const line_2d_c & line : lower)
+	{
+		x.push_back(line.get_center_point().x);
 	}
 
-	std::cout << std::endl;
+	return x;
+}
 
-	return x_as;
+std::vector<double> airfoil_c::select_upper_data(const std::vector<double> & input) const
+{
+	std::vector<line_2d_c> upper_panels = get_upper_panels();
+
+	std::vector<double> output(input.begin(), input.begin() + upper_panels.size());
+
+	std::reverse(output.begin(), output.end());
+
+	return output;
+}
+
+std::vector<double> airfoil_c::select_lower_data(const std::vector<double> & input) const
+{
+	std::vector<line_2d_c> lower_panels = get_lower_panels();
+	std::vector<double> reverse_input = input;
+
+	std::reverse(reverse_input.begin(), reverse_input.end());
+
+	std::vector<double> output(reverse_input.begin(), reverse_input.begin() + lower_panels.size());
+
+	std::reverse(output.begin(), output.end());
+
+	return output;
 }
 
 const std::vector<vector_2d_c> & airfoil_c::get_points() const

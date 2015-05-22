@@ -88,7 +88,7 @@ public:
 	 */
 	E_INTERSECTION get_intersection(const line_2d_c & other, vector_2d_c & intersection, double epsilon = 0.001) const;
 
-private:
+public:
 	vector_2d_c get_difference() const;
 
 public:

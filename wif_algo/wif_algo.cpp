@@ -23,6 +23,16 @@ struct integration_function_parameters
 	double ya;
 };
 
+double xj(double xc, double xa, double s, double beta)
+{
+	return xc - (xa - s * std::sin(beta));
+}
+
+double yj(double yc, double ya, double s, double beta)
+{
+	return yc - (ya + s * std::cos(beta));
+}
+
 double source_sheet_function(double s, void * parameters)
 {
 	struct integration_function_parameters * params = (struct integration_function_parameters *)parameters;
@@ -32,8 +42,11 @@ double source_sheet_function(double s, void * parameters)
 	double yc = (params->yc);
 	double xa = (params->xa);
 	double ya = (params->ya);
-	double source_sheet_function = ((xc - (xa - s * sin(betaj))) * cos(beta) + (yc - (ya + s * cos(betaj))) * sin(beta)) / (pow((xc - (xa - s * sin(betaj))), 2.) + pow((yc - (ya + s * cos(betaj))), 2.));
-	return source_sheet_function;
+
+	double a = cos(beta) * xj(xc, xa, s, betaj) + sin(beta) * yj(yc, ya, s, betaj);
+	double b = pow(xj(xc, xa, s, betaj), 2.) + pow(yj(yc, ya, s, betaj), 2.);
+
+	return a / b;
 }
 
 double vortex_sheet_function_1(double s, void * parameters)
@@ -46,8 +59,8 @@ double vortex_sheet_function_1(double s, void * parameters)
 	double xa = (params->xa);
 	double ya = (params->ya);
 
-	double a = sin(beta) * (xc - (xa - s * sin(betaj))) - cos(beta) * (yc - (ya + s * cos(betaj)));
-	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
+	double a = sin(beta) * xj(xc, xa, s, betaj) - cos(beta) * yj(yc, ya, s, betaj);
+	double b = pow(xj(xc, xa, s, betaj), 2) + pow(yj(yc, ya, s, betaj), 2);
 
 	return a / b;
 }
@@ -62,8 +75,8 @@ double vortex_sheet_function_lastrow(double s, void * parameters)
 	double xa = (params->xa);
 	double ya = (params->ya);
 
-	double a = -sin(beta) * (xc - (xa - s * sin(betaj))) + cos(beta) * (yc - (ya + s * cos(betaj)));
-	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
+	double a = -sin(beta) * xj(xc, xa, s, betaj) + cos(beta) * yj(yc, ya, s, betaj);
+	double b = pow(xj(xc, xa, s, betaj), 2) + pow(yj(yc, ya, s, betaj), 2);
 
 	return a / b;
 }
@@ -78,8 +91,8 @@ double vortex_sheet_function_lastelement(double s, void * parameters)
 	double xa = (params->xa);
 	double ya = (params->ya);
 
-	double a = -(xc - (xa - s * sin(betaj))) * cos(beta)  - (yc - (ya + s * cos(betaj))) * sin(beta);
-	double b = pow(xc - (xa - s * sin(betaj)), 2) + pow(yc - (ya + s * cos(betaj)), 2);
+	double a = -xj(xc, xa, s, betaj) * cos(beta) - yj(yc, ya, s, betaj) * sin(beta);
+	double b = pow(xj(xc, xa, s, betaj), 2) + pow(yj(yc, ya, s, betaj), 2);
 
 	return a / b;
 }
@@ -93,8 +106,8 @@ double v_t_source_function(double s, void * parameters)
 	double yc = (params->yc);
 	double xa = (params->xa);
 	double ya = (params->ya);
-	double a = (-(xc - (xa - s * sin(betaj))) * sin(beta) + (yc - (ya + s * cos(betaj))) * cos(beta)) ;
-	double b = (pow((xc - (xa - s * sin(betaj))), 2.) + pow((yc - (ya + s * cos(betaj))), 2.));
+	double a = (-xj(xc, xa, s, betaj) * sin(beta) + yj(yc, ya, s, betaj) * cos(beta)) ;
+	double b = (pow(xj(xc, xa, s, betaj), 2.) + pow(yj(yc, ya, s, betaj), 2.));
 
 	return a / b;
 }
@@ -108,8 +121,8 @@ double v_t_vortex_function(double s, void * parameters)
 	double yc = (params->yc);
 	double xa = (params->xa);
 	double ya = (params->ya);
-	double a = ((xc - (xa - s * sin(betaj))) * cos(beta) + (yc - (ya + s * cos(betaj))) * sin(beta)) ;
-	double b = (pow((xc - (xa - s * sin(betaj))), 2.) + pow((yc - (ya + s * cos(betaj))), 2.));
+	double a = xj(xc, xa, s, betaj) * cos(beta) + yj(yc, ya, s, betaj) * sin(beta);
+	double b = (pow(xj(xc, xa, s, betaj), 2.) + pow(yj(yc, ya, s, betaj), 2.));
 
 	return a / b;
 }
@@ -214,7 +227,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 				}
 				else
 				{
-					parameters = {angles[i], angles[j], centers[i].x, centers[i].y, points_airfoil[j].x, points_airfoil[j].y};
+					parameters = {angles[i], angles[j], centers[i].x, centers[i].y, mylines[j].begin.x, mylines[j].begin.y};
 
 					gsl_integration_cquad(&FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
 
@@ -247,34 +260,6 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 		gsl_permutation_free(p);
 		gsl_vector_free(x);
-
-		//Calculating c_p
-		gsl_function V_FUNC;
-		V_FUNC.params = &parameters;
-
-		for(int i = 0; i < num_lines; i++)
-		{
-			v_t_i = 0.;
-
-			for(int j = 0; j < num_lines; j++)
-			{
-				if(i != j)
-				{
-					parameters = {angles[i], angles[j], centers[i].x, centers[i].y, points_airfoil[j].x, points_airfoil[j].y};
-
-					V_FUNC.function = &v_t_source_function;
-					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
-					v_t_i += ((Sigma[j] / (2 * pi)) * result);
-
-					V_FUNC.function = &v_t_vortex_function;
-					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
-					v_t_i -= gamma / (2 * pi) * result;
-				}
-			}
-
-			v_ti[i] = v_t_i;
-			c_p[i] = 1.0 - pow((U_inf * (-sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack)) + v_t_i) / U_inf, 2);
-		}
 	} // if (Kutta)
 	else
 	{
@@ -317,7 +302,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 					}
 					else
 					{
-						parameters = {angles[i], angles[j], centers[i].x, centers[i].y, points_airfoil[j].x, points_airfoil[j].y};
+						parameters = {angles[i], angles[j], centers[i].x, centers[i].y, mylines[j].begin.x, mylines[j].begin.y};
 
 						gsl_integration_cquad(&FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
 
@@ -336,34 +321,33 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 					{
 						if(r != i)
 						{
-							parameters = {angles[i], angles[r], centers[i].x, centers[i].y, points_airfoil[r].x, points_airfoil[r].y};
+							parameters = {angles[i], angles[r], centers[i].x, centers[i].y, mylines[r].begin.x, mylines[r].begin.y};
 							gsl_integration_cquad(&FUNC, s_0, lengths[r], 0., 1e-7, w, &result, &error, &nevals);
 							last_column_value += result;
 						}
 
 					}
 
-					gsl_matrix_set(&matrix_A_view.matrix, (size_t) i, (size_t) j, -last_column_value / (2.*pi));
+					gsl_matrix_set(&matrix_A_view.matrix, (size_t) i, (size_t) j, -last_column_value / (2.0 * pi));
 
 				}
 				else if(i == num_lines && j < num_lines)
 				{
 
 					//LAATSTE RIJ BLOK (Np+1 x Np)
-					//vector_b_data[i] = -U_inf * cos(angles[k] - angle_attack) - U_inf * cos(angles[l] - angle_attack);
 					double last_row_value = 0;
 					FUNC.function = &vortex_sheet_function_lastrow;
 
 					if(j != k)
 					{
-						parameters = {angles[k], angles[j], centers[k].x, centers[k].y, points_airfoil[j].x, points_airfoil[j].y};
+						parameters = {angles[k], angles[j], centers[k].x, centers[k].y, mylines[j].begin.x, mylines[j].begin.y};
 						gsl_integration_cquad(&FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
 						last_row_value += result;
 					}
 
 					if(j != l)
 					{
-						parameters = {angles[l], angles[j], centers[l].x, centers[l].y, points_airfoil[j].x, points_airfoil[j].y};
+						parameters = {angles[l], angles[j], centers[l].x, centers[l].y, mylines[j].begin.x, mylines[j].begin.y};
 						gsl_integration_cquad(&FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
 						last_row_value += result;
 					}
@@ -384,7 +368,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 					{
 						if(r != k)
 						{
-							parameters = {angles[k], angles[r], centers[k].x, centers[k].y, points_airfoil[r].x, points_airfoil[r].y};
+							parameters = {angles[k], angles[r], centers[k].x, centers[k].y, mylines[r].begin.x, mylines[r].begin.y};
 							gsl_integration_cquad(&FUNC, s_0, lengths[r], 0., 1e-7, w, &result, &error, &nevals);
 							last_element_value += result / (2.0 * pi);
 						}
@@ -395,7 +379,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 						if(r != l)
 						{
-							parameters = {angles[l], angles[r], centers[l].x, centers[l].y, points_airfoil[r].x, points_airfoil[r].y};
+							parameters = {angles[l], angles[r], centers[l].x, centers[l].y, mylines[r].begin.x, mylines[r].begin.y};
 							gsl_integration_cquad(&FUNC, s_0, lengths[r], 0., 1e-7, w, &result, &error, &nevals);
 							last_element_value += result / (2.0 * pi);
 						}
@@ -436,37 +420,35 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 		gsl_permutation_free(p);
 		gsl_vector_free(x);
-
-
-
-		//Calculating c_p
-		for(int i = 0; i < num_lines; i++)
-		{
-			v_t_i = 0.;
-
-			for(int j = 0; j < num_lines; j++)
-			{
-				if(i != j)
-				{
-					struct integration_function_parameters parameters_2;
-					gsl_function V_FUNC;
-					V_FUNC.params = &parameters_2;
-					parameters_2 = {angles[i], angles[j], centers[i].x, centers[i].y, points_airfoil[j].x, points_airfoil[j].y};
-
-					V_FUNC.function = &v_t_source_function;
-					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
-					v_t_i += (Sigma[j] / (2.0 * M_PI)) * result;
-
-					V_FUNC.function = &v_t_vortex_function;
-					gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
-					v_t_i -= (gamma / (2.0 * M_PI)) * result;
-				}
-			}
-
-			v_ti[i] = v_t_i;
-			c_p[i] = 1.0 - pow((U_inf * (-sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack)) + v_t_i) / U_inf, 2);
-		}
 	} // else kutta
+
+	//Calculating c_p
+	for(int i = 0; i < num_lines; i++)
+	{
+		v_t_i = U_inf * (- sin(angles[i]) * cos(angle_attack) + cos(angles[i]) * sin(angle_attack));
+
+		for(int j = 0; j < num_lines; j++)
+		{
+			if(i != j)
+			{
+				struct integration_function_parameters parameters_2;
+				gsl_function V_FUNC;
+				V_FUNC.params = &parameters_2;
+				parameters_2 = {angles[i], angles[j], centers[i].x, centers[i].y, mylines[j].begin.x, mylines[j].begin.y};
+
+				V_FUNC.function = &v_t_source_function;
+				gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
+				v_t_i += (Sigma[j] / (2.0 * M_PI)) * result;
+
+				V_FUNC.function = &v_t_vortex_function;
+				gsl_integration_cquad(&V_FUNC, s_0, lengths[j], 0., 1e-7, w, &result, &error, &nevals);
+				v_t_i -= (gamma / (2.0 * M_PI)) * result;
+			}
+		}
+
+		v_ti[i] = v_t_i;
+		c_p[i] = 1.0 - pow(v_t_i / U_inf, 2);
+	}
 
 	accumulate_flow->add_flow(myFlow);
 	accumulate_flow->add_source_sheets(Sigma, myAirfoil);

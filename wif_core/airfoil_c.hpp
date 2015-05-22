@@ -51,13 +51,17 @@ public:
 
 	bool check_lengths() const;
 
-	typename std::vector<vector_2d_c>::size_type get_index_of_last_upper_panel() const;
+	std::vector<line_2d_c> get_upper_panels() const;
 
-	typename std::vector<vector_2d_c>::size_type get_index_of_first_lower_panel() const;
+	std::vector<double> get_upper_x() const;
 
-	std::vector<double> get_upper_panels_x() const;
+	std::vector<line_2d_c> get_lower_panels() const;
 
-	std::vector<double> get_lower_panels_x() const;
+	std::vector<double> get_lower_x() const;
+
+	std::vector<double> select_upper_data(const std::vector<double> & input) const;
+
+	std::vector<double> select_lower_data(const std::vector<double> & input) const;
 
 	/**
 	 * Check if the last points is the same as the first, within a certain error
