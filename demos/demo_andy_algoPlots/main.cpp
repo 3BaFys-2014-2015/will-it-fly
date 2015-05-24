@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <string>
 #include <ctime>
+// creating directory
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
 #include <wif_core/wif_core.hpp>
@@ -10,10 +13,40 @@
 #include <wif_viz/wif_viz.hpp>
 
 
+std::string double_to_string(double number, bool for_title = false)
+{
+
+	std::string number_as_string = std::to_string(number);
+
+	if(number != std::floor(number))
+	{
+		if(!for_title)
+		{
+			number_as_string.erase(0, 2);
+			number_as_string.erase(1);
+			std::string first_digit = std::to_string(std::floor(number));
+			first_digit.erase(1);
+			return first_digit + number_as_string;
+		}
+		else
+		{
+			number_as_string.erase(3);
+			return number_as_string;
+		}
+
+	}
+	else
+	{
+		number_as_string.erase(1);
+		return number_as_string;
+	}
+}
+
 
 int main()
 {
-
+	std::string directory = "AlgoPlots/";
+	int status = mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	// CP NUMERIEK VS THEORETISCH.
 	// Closed body check circle als functie van #panelen.
 	// tijdsduur als functie van #panelen.
@@ -76,7 +109,7 @@ int main()
 			cp_legend[1] = "Numeriek";
 
 			std::string cp_title = "Cp: " + std::to_string(num_lines) + " panelen";
-			std::string cp_filename = "plot_cp " + std::to_string(num_lines) + ".png";
+			std::string cp_filename = directory + "plot_cp_" + std::to_string(num_lines) + ".png";
 
 			std::shared_ptr<wif_viz::visualization_c> cp_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 			cp_plotter->plotVectors(cp_plot, cp_x_axis, cp_legend, cp_filename, "paneel", "Cp", cp_title);
@@ -96,7 +129,7 @@ int main()
 		closed_body_legend[0] = "Som sigma * l (10^3)";
 
 		std::string closed_body_title = "Som sigma * l als functie van het aantal panelen";
-		std::string closed_body_filename = "som sigma l cp.png";
+		std::string closed_body_filename = directory + "som_sigma_l_cp.png";
 
 		std::shared_ptr<wif_viz::visualization_c> closed_body_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		closed_body_plotter->plotVectors(closed_body_plot, num_lines_x_axis, closed_body_legend, closed_body_filename, "# panelen", "Som sigma *l (10^3)", closed_body_title);
@@ -110,7 +143,7 @@ int main()
 		cp_error_legend[0] = "Fout";
 
 		std::string cp_error_title = "Fout op cp als functie van het aantal panelen";
-		std::string cp_error_filename = "fout op cp.png";
+		std::string cp_error_filename = directory + "fout_op_cp.png";
 
 		std::shared_ptr<wif_viz::visualization_c> cp_error_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		cp_error_plotter->plotVectors(cp_error_plot, num_lines_x_axis, cp_error_legend, cp_error_filename, "# panelen", "log10(Fout op Cp)", cp_error_title);
@@ -123,7 +156,7 @@ int main()
 		durations_legend[0] = "Tijdsduur";
 
 		std::string durations_title = "Tijdsduur als functie van het aantal panelen";
-		std::string durations_filename = "tijd cp.png";
+		std::string durations_filename = directory + "tijd_cp.png";
 
 		std::shared_ptr<wif_viz::visualization_c> durations_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		durations_plotter->plotVectors(durations_plot, num_lines_x_axis, durations_legend, durations_filename, "# panelen", "Tijd (s)", durations_title);
@@ -151,7 +184,7 @@ int main()
 		std::iota(std::begin(cp_gamma_x_axis), std::end(cp_gamma_x_axis), 0);
 
 		std::string cp_gamma_title = "cp (gamma)";
-		std::string cp_gamma_filename = "cp_gamma.png";
+		std::string cp_gamma_filename = directory + "cp_gamma.png";
 
 		for(int gamma = gamma_start; gamma <= gamma_end; gamma += gamma_step)
 		{
@@ -215,8 +248,8 @@ int main()
 
 			cp_angle_plot[2] = c_p_angle_differences;
 
-			std::string cp_angle_title = "# panelen = " + std::to_string(num_lines) + " AoA = " + std::to_string(angle);
-			std::string cp_angle_filename = "CpAoA" + std::to_string(angle) + ".png";
+			std::string cp_angle_title = "# panelen = " + std::to_string(num_lines) + " AoA = " + double_to_string(angle, 1);
+			std::string cp_angle_filename = directory + "CpAoA" + double_to_string(angle) + ".png";
 
 			wif_core::vector_2d_c midpoint(0, 0);
 			std::shared_ptr<wif_viz::visualization_c> cp_angle_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
@@ -261,7 +294,7 @@ int main()
 		naca_closed_body_checks_legend[0] = "Som sigma * l (10^3)";
 
 		std::string naca_closed_body_checks_title = "Som sigma * l als functie van het aantal panelen";
-		std::string naca_closed_body_checks_filename = "closed_body_airfoil.png";
+		std::string naca_closed_body_checks_filename = directory + "closed_body_airfoil.png";
 
 		wif_core::vector_2d_c midpoint(0, 0);
 		std::shared_ptr<wif_viz::visualization_c> naca_closed_body_checks_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
@@ -284,6 +317,10 @@ int main()
 		double angle_step = 0.5;
 		double angle_end = 3.0;
 
+		int U_start = 1;
+		int U_factor = 10;
+		int U_end = 1000;
+
 		std::vector<std::vector<double>> cp_angle_plot(3);
 
 		std::vector<std::string> cp_angle_legend(3);
@@ -293,39 +330,46 @@ int main()
 
 		std::vector<double> cp_angle_x_axis = naca_airfoil.get_lower_x(); // I checked, lower and upper size is same.
 
-
-		for(double angle = angle_start; angle <= angle_end; angle += angle_step)
+		for(int U = U_start; U <= U_end; U *= U_factor)
 		{
 
-			std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>((angle / 180) * M_PI, 1);
-
-			wif_algo::calculation_results_c cp_angle_results = wif_algo::calculate_flow(naca_airfoil, uni_flow, Kutta);
-
-			std::vector<double> c_p_upper(cp_angle_results.c_p.begin(), cp_angle_results.c_p.begin() + num_lines);
-			std::vector<double> c_p_lower(cp_angle_results.c_p.begin() + num_lines, cp_angle_results.c_p.end());
-
-			std::reverse(c_p_upper.begin(), c_p_upper.end());
-
-			cp_angle_plot[0] = c_p_upper;
-			cp_angle_plot[1] = c_p_lower;
-
-			std::vector<double> c_p_angle_differences;
-
-			for(int i = 0; i < num_lines; i++)
+			for(double angle = angle_start; angle <= angle_end; angle += angle_step)
 			{
-				c_p_angle_differences.push_back(c_p_upper[i] - c_p_lower[i]);
+
+				std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>((angle / 180) * M_PI, U);
+
+				wif_algo::calculation_results_c cp_angle_results = wif_algo::calculate_flow(naca_airfoil, uni_flow, Kutta);
+
+				std::vector<double> c_p_upper(cp_angle_results.c_p.begin(), cp_angle_results.c_p.begin() + num_lines);
+				std::vector<double> c_p_lower(cp_angle_results.c_p.begin() + num_lines, cp_angle_results.c_p.end());
+
+				std::reverse(c_p_upper.begin(), c_p_upper.end());
+
+				cp_angle_plot[0] = c_p_upper;
+				cp_angle_plot[1] = c_p_lower;
+
+				std::vector<double> c_p_angle_differences;
+
+				for(int i = 0; i < num_lines; i++)
+				{
+					c_p_angle_differences.push_back(c_p_upper[i] - c_p_lower[i]);
+				}
+
+				cp_angle_plot[2] = c_p_angle_differences;
+
+				std::string cp_angle_title = "# panelen = " + std::to_string(num_lines) + " AoA = " + double_to_string(angle, 1) + " U = " + std::to_string(U) + " Met Kutta";
+				std::string cp_angle_filename = directory + "CpAoA" + double_to_string(angle) + "U" + std::to_string(U) + "Kutta" + ".png";
+
+				wif_core::vector_2d_c midpoint(0, 0);
+				std::shared_ptr<wif_viz::visualization_c> cp_angle_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
+				cp_angle_plotter->plotVectors(cp_angle_plot, cp_angle_x_axis, cp_angle_legend, cp_angle_filename, "x", "cp", cp_angle_title);
+
 			}
 
-			cp_angle_plot[2] = c_p_angle_differences;
 
-			std::string cp_angle_title = "# panelen = " + std::to_string(num_lines) + " AoA = " + std::to_string(angle) + " Met Kutta";
-			std::string cp_angle_filename = "CpAoA" + std::to_string(angle) + "Kutta" + ".png";
-
-			wif_core::vector_2d_c midpoint(0, 0);
-			std::shared_ptr<wif_viz::visualization_c> cp_angle_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
-			cp_angle_plotter->plotVectors(cp_angle_plot, cp_angle_x_axis, cp_angle_legend, cp_angle_filename, "x", "cp", cp_angle_title);
 
 		}
+
 	}
 
 	// CL voor verschillende airfoils bij verschillende AoA, met Kutta
@@ -364,7 +408,7 @@ int main()
 		std::vector<double> cl_x_axis;
 
 		std::string cl_title = "Liftcoefficient bij verschillende AoA voor verschillende airfoils";
-		std::string cl_filename = "cl_airfoils.png";
+		std::string cl_filename = directory + "cl_airfoils.png";
 
 		double angle_start = 0.0;
 		double angle_step = 0.5;
@@ -400,6 +444,8 @@ int main()
 
 		std::shared_ptr<wif_viz::visualization_c> cl_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		cl_plotter->plotVectors(cl_plot, cl_x_axis, cl_legend, cl_filename, "Angle of Attack (Graden)", "Liftcoefficient", cl_title);
+
+
 
 
 	}
