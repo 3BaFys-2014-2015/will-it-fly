@@ -174,7 +174,6 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 	{
 		wif_core::line_2d_c temp_line = mylines[i];
 		lengths[i] = temp_line.get_length();
-		std::cout << lengths[i] << std::endl;
 		centers[i] = temp_line.get_center_point();
 
 		wif_core::vector_2d_c a((temp_line.end.y - temp_line.begin.y), -(temp_line.end.x - temp_line.begin.x));
@@ -250,12 +249,9 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 
 		gsl_linalg_LU_solve(&matrix_A_view.matrix, p, &vector_b_view.vector, x);
 
-		std::cout << "Printing sigma's" << std::endl;
-
 		for(int i = 0; i < num_columns; i++)
 		{
 			Sigma[i] = gsl_vector_get(x, i);
-			std::cout << Sigma[i] << std::endl;
 		}
 
 		gsl_permutation_free(p);
@@ -465,7 +461,7 @@ calculation_results_c calculate_flow(const wif_core::airfoil_c & myAirfoil, std:
 	c.v_t = v_ti;
 	c.closed_body_check = std::inner_product(lengths.begin(), lengths.end(), Sigma.begin(), 0.0);
 
-	std::cout << c.closed_body_check << std::endl;
+	std::cout << "Closed body check: " << c.closed_body_check << std::endl;
 
 	gsl_integration_cquad_workspace_free(w);
 	return c;
