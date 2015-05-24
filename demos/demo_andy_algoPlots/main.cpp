@@ -130,10 +130,8 @@ int main()
 
 	}
 
-	// NACA PLOTS zonder Kutta.
 
-
-	// CP met verschillende vorticiteit.
+	// NACA CP met verschillende vorticiteit, zonder Kutta
 	{
 		bool Kutta = 0;
 		int num_lines = 20;
@@ -171,7 +169,7 @@ int main()
 	}
 
 
-	// CP Intrados en Extrados verschillende AoA.
+	// NACA CP Intrados en Extrados verschillende AoA, zonder Kutta.
 	{
 		bool Kutta = 0;
 		int num_lines = 20;
@@ -229,7 +227,7 @@ int main()
 	}
 
 
-	// NACA closed body check als functie van aantal panelen.
+	// NACA closed body check als functie van aantal panelen, zonder Kutta.
 	{
 		bool Kutta = 0;
 
@@ -272,10 +270,9 @@ int main()
 	}
 
 
-	// NACA PLOTS met Kutta.
 
 
-	// CP Intrados en Extrados verschillende AoA.
+	// NACA CP Intrados en Extrados verschillende AoA, met Kutta.
 	{
 		bool Kutta = 1;
 		int num_lines = 20;
@@ -331,9 +328,78 @@ int main()
 		}
 	}
 
-	// CL voor verschillende airfoils bij verschillende AoA
+	// CL voor verschillende airfoils bij verschillende AoA, met Kutta
 	{
+		bool Kutta = 1;
+		int num_lines = 20;
 
+		wif_core::airfoil_c naca_airfoil("wif_core/airfoils/selig.dat");
+		naca_airfoil = naca_airfoil.closed_merge();
+		naca_airfoil = naca_airfoil.get_circle_projection(num_lines);
+
+		wif_core::airfoil_c a18_airfoil("wif_core/airfoils/a18.dat");
+		a18_airfoil = a18_airfoil.closed_merge();
+		a18_airfoil = a18_airfoil.get_circle_projection(num_lines);
+
+		wif_core::airfoil_c davisb24_airfoil("wif_core/airfoils/davis_corrected.dat");
+		davisb24_airfoil = davisb24_airfoil.closed_merge();
+		davisb24_airfoil = davisb24_airfoil.get_circle_projection(num_lines);
+
+		wif_core::airfoil_c pmc19_airfoils("wif_core/airfoils/pmc19sm.dat");
+		pmc19_airfoils = pmc19_airfoils.closed_merge();
+		pmc19_airfoils = pmc19_airfoils.get_circle_projection(num_lines);
+
+
+		std::vector<double> naca_cl;
+		std::vector<double> a18_cl;
+		std::vector<double> davisb24_cl;
+		std::vector<double> pmc19_cl;
+
+		std::vector<std::string> cl_legend(4);
+		cl_legend[0] = "NACA 0012";
+		cl_legend[1] = "A 18";
+		cl_legend[2] = "Davis Baisc B-24";
+		cl_legend[3] = "PMC 19 Smoothed";
+
+		std::vector<double> cl_x_axis;
+
+		std::string cl_title = "Liftcoefficient bij verschillende AoA voor verschillende airfoils";
+		std::string cl_filename = "cl_airfoils.png";
+
+		double angle_start = 0.0;
+		double angle_step = 0.5;
+		double angle_end = 3.0;
+
+		for(double angle = angle_start; angle <= angle_end; angle += angle_step)
+		{
+
+			std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>((angle / 180) * M_PI, 1);
+
+			wif_algo::calculation_results_c naca_results = wif_algo::calculate_flow(naca_airfoil, uni_flow, Kutta);
+			wif_algo::calculation_results_c a18_results = wif_algo::calculate_flow(a18_airfoil, uni_flow, Kutta);
+			wif_algo::calculation_results_c davisb24_results = wif_algo::calculate_flow(davisb24_airfoil, uni_flow, Kutta);
+			wif_algo::calculation_results_c pmc19_results = wif_algo::calculate_flow(pmc19_airfoils, uni_flow, Kutta);
+
+			naca_cl.push_back(naca_results.c_l);
+			a18_cl.push_back(a18_results.c_l);
+			davisb24_cl.push_back(davisb24_results.c_l);
+			pmc19_cl.push_back(pmc19_results.c_l);
+
+			cl_x_axis.push_back(angle);
+
+		}
+
+		std::vector<std::vector<double>> cl_plot(4);
+		cl_plot[0] = naca_cl;
+		cl_plot[1] = a18_cl;
+		cl_plot[2] = davisb24_cl;
+		cl_plot[3] = pmc19_cl;
+
+		wif_core::vector_2d_c midpoint(0, 0);
+		std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>(0, 1);
+
+		std::shared_ptr<wif_viz::visualization_c> cl_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
+		cl_plotter->plotVectors(cl_plot, cl_x_axis, cl_legend, cl_filename, "Angle of Attack (Graden)", "Liftcoefficient", cl_title);
 
 
 	}
