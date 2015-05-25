@@ -15,30 +15,30 @@
 
 std::string double_to_string(double number, bool for_title = false)
 {
-
+	// ONLY WORKS FOR X.Y000... NUMBERS, NOT FOR XX.Y000..., I WAS LAZY.
 	std::string number_as_string = std::to_string(number);
 
 	if(number != std::floor(number))
 	{
 		if(!for_title)
 		{
-			number_as_string.erase(0, 2);
-			number_as_string.erase(1);
-			std::string first_digit = std::to_string(std::floor(number));
-			first_digit.erase(1);
-			return first_digit + number_as_string;
+			number_as_string.erase(0, 2); // Remove X. from X.Y000..
+			number_as_string.erase(1);// Remove 000... from Y000...
+			std::string first_digit = std::to_string(std::floor(number)); // Get X from X.Y000....
+			first_digit.erase(1); // Remove 000... from X.0000...
+			return first_digit + number_as_string; // Return First digit and First digit after point. X.Y000... becomes XY
 		}
 		else
 		{
 			number_as_string.erase(3);
-			return number_as_string;
+			return number_as_string; // For title in plot return X.Y from X.Y000...
 		}
 
 	}
 	else
 	{
 		number_as_string.erase(1);
-		return number_as_string;
+		return number_as_string; // If the number is X.000... return X
 	}
 }
 
@@ -444,6 +444,77 @@ int main()
 		std::shared_ptr<wif_viz::visualization_c> cl_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		cl_plotter->plotVectors(cl_plot, cl_x_axis, cl_legend, cl_filename, "Angle of Attack (Graden)", "Liftcoefficient", cl_title);
 
+
+
+
+	}
+
+	{
+
+		bool Kutta = 1;
+		int num_lines = 20;
+
+		wif_core::airfoil_c naca_airfoil("wif_core/airfoils/selig.dat");
+		naca_airfoil = naca_airfoil.closed_merge();
+		naca_airfoil = naca_airfoil.get_circle_projection(num_lines);
+
+
+
+		std::vector<double> naca_cl;
+		std::vector<double> naca_cl_mathematica(7);
+		naca_cl_mathematica[0] = 0;
+		naca_cl_mathematica[1] = 0.06;
+		naca_cl_mathematica[2] = 0.12;
+		naca_cl_mathematica[3] = 0.18;
+		naca_cl_mathematica[4] = 0.24;
+		naca_cl_mathematica[5] = 0.30;
+		naca_cl_mathematica[6] = 0.36;
+		std::vector<double> naca_cl_difference;
+
+		std::vector<std::string> cl_legend(3);
+		cl_legend[0] = "will-it-fly";
+		cl_legend[1] = "Mathematica";
+		cl_legend[2] = "Verschil";
+
+		std::vector<double> cl_x_axis;
+
+		std::string cl_title = "Liftcoefficient bij verschillende AoA voor NACA0012 vergeleken met Mathematica pakket";
+		std::string cl_filename = directory + "cl_airfoils_mathematica.png";
+
+		double angle_start = 0.0;
+		double angle_step = 0.5;
+		double angle_end = 3.0;
+
+		for(double angle = angle_start; angle <= angle_end; angle += angle_step)
+		{
+
+			std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>((angle / 180) * M_PI, 1);
+
+			wif_algo::calculation_results_c naca_results = wif_algo::calculate_flow(naca_airfoil, uni_flow, Kutta);
+
+
+			naca_cl.push_back(naca_results.c_l);
+
+			cl_x_axis.push_back(angle);
+
+		}
+
+		for(int i = 0; i < naca_cl_mathematica.size(); i++)
+		{
+			naca_cl_difference.push_back(naca_cl[i] - naca_cl_mathematica[i]);
+		}
+
+		std::vector<std::vector<double>> cl_plot(3);
+		cl_plot[0] = naca_cl;
+		cl_plot[1] = naca_cl_mathematica;
+		cl_plot[2] = naca_cl_difference;
+
+
+		wif_core::vector_2d_c midpoint(0, 0);
+		std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>(0, 1);
+
+		std::shared_ptr<wif_viz::visualization_c> cl_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
+		cl_plotter->plotVectors(cl_plot, cl_x_axis, cl_legend, cl_filename, "Angle of Attack (Graden)", "Liftcoefficient", cl_title);
 
 
 
