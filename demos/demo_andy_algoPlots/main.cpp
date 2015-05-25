@@ -167,11 +167,11 @@ int main()
 	// NACA CP met verschillende vorticiteit, zonder Kutta
 	{
 		bool Kutta = 0;
+		double radius = 1;
+		wif_core::vector_2d_c midpoint(0, 0);
 		int num_lines = 20;
 		std::shared_ptr<wif_core::uniform_flow_c> uni_flow = std::make_shared<wif_core::uniform_flow_c>(0, 1);
-		wif_core::airfoil_c naca_airfoil("wif_core/airfoils/selig.dat");
-		naca_airfoil = naca_airfoil.closed_merge(0.001);
-		naca_airfoil = naca_airfoil.get_circle_projection(num_lines);
+		wif_core::airfoil_c circle_airfoil(midpoint, radius, num_lines);
 
 		int gamma_start = 0;
 		int gamma_step = 5;
@@ -180,22 +180,21 @@ int main()
 		std::vector<std::vector<double>> cp_gamma_plot;
 		std::vector<std::string> cp_gamma_legend;
 
-		std::vector<double> cp_gamma_x_axis(2 * num_lines);
+		std::vector<double> cp_gamma_x_axis(num_lines);
 		std::iota(std::begin(cp_gamma_x_axis), std::end(cp_gamma_x_axis), 0);
 
-		std::string cp_gamma_title = "cp (gamma)";
+		std::string cp_gamma_title = "cp (gamma) voor cilinder";
 		std::string cp_gamma_filename = directory + "cp_gamma.png";
 
 		for(int gamma = gamma_start; gamma <= gamma_end; gamma += gamma_step)
 		{
 
-			wif_algo::calculation_results_c naca_airfoil_results = wif_algo::calculate_flow(naca_airfoil, uni_flow, Kutta, gamma);
-			cp_gamma_plot.push_back(naca_airfoil_results.c_p);
+			wif_algo::calculation_results_c circle_airfoil_results = wif_algo::calculate_flow(circle_airfoil, uni_flow, Kutta, gamma);
+			cp_gamma_plot.push_back(circle_airfoil_results.c_p);
 			cp_gamma_legend.push_back(std::to_string(gamma));
 
 		}
 
-		wif_core::vector_2d_c midpoint(0, 0);
 		std::shared_ptr<wif_viz::visualization_c> cp_gamma_plotter = wif_viz::create_visualization_root(uni_flow, midpoint, midpoint);
 		cp_gamma_plotter->plotVectors(cp_gamma_plot, cp_gamma_x_axis, cp_gamma_legend, cp_gamma_filename, "paneel", "cp", cp_gamma_title);
 
